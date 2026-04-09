@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { ProductCard } from "@/components/product-card";
 import { Input } from "@/components/ui/input";
 import { Category, Product } from "@/lib/types";
@@ -11,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 type ProductWithCategory = Product & { category?: Pick<Category, "name"> };
 
 export default function CataloguePage() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [categories, setCategories] = useState<Category[]>([]);
@@ -139,9 +141,7 @@ export default function CataloguePage() {
             <ProductCard
               key={product.id}
               product={product}
-              onSelect={(p) => {
-                console.log("Cotiser pour:", p.name);
-              }}
+              onSelect={(p) => router.push(`/catalogue/${p.id}`)}
             />
           ))}
         </div>
