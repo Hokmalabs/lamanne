@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { MetricCard } from "@/components/metric-card";
 import { CotisationCard } from "@/components/cotisation-card";
 import { Button } from "@/components/ui/button";
@@ -7,59 +8,63 @@ import { formatCFA } from "@/lib/utils";
 import { Cotisation } from "@/lib/types";
 import { Wallet, TrendingUp, Clock, Plus, ShoppingBag } from "lucide-react";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
-// Données mockées pour l'affichage initial
-const mockCotisations: (Cotisation & { product: { name: string; images: string[] } })[] = [
-  {
-    id: "1",
-    user_id: "user-1",
-    product_id: "prod-1",
-    total_price: 250000,
-    amount_paid: 175000,
-    amount_remaining: 75000,
-    nb_tranches: 10,
-    tranche_amount: 25000,
-    status: "active",
-    withdrawal_code: null,
-    withdrawn_at: null,
-    created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-    product: {
-      name: "Samsung Galaxy A54 5G — 128 Go",
-      images: [],
-    },
-  },
-  {
-    id: "2",
-    user_id: "user-1",
-    product_id: "prod-2",
-    total_price: 450000,
-    amount_paid: 90000,
-    amount_remaining: 360000,
-    nb_tranches: 15,
-    tranche_amount: 30000,
-    status: "active",
-    withdrawal_code: null,
-    withdrawn_at: null,
-    created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    product: {
-      name: "Télévision LG OLED 55\" 4K Smart TV",
-      images: [],
-    },
-  },
-];
-
-const totalEngaged = mockCotisations.reduce((s, c) => s + c.total_price, 0);
-const totalPaid = mockCotisations.reduce((s, c) => s + c.amount_paid, 0);
-const totalRemaining = mockCotisations.reduce((s, c) => s + c.amount_remaining, 0);
+type CotisationWithProduct = Cotisation & {
+  product: { name: string; images: string[] };
+};
 
 export default function DashboardPage() {
+  const [cotisations, setCotisations] = useState<CotisationWithProduct[]>([]);
+  const [prenom, setPrenom] = useState("Utilisateur");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.full_name) {
+        setPrenom(profile.full_name.split(" ")[0]);
+      }
+
+      const { data: cotisData } = await supabase
+        .from("cotisations")
+        .select("*, product:products(name, images)")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .order("created_at", { ascending: false });
+
+      if (cotisData) setCotisations(cotisData as CotisationWithProduct[]);
+      setLoading(false);
+    }
+
+    fetchData();
+  }, []);
+
+  const totalEngaged = cotisations.reduce((s, c) => s + c.total_price, 0);
+  const totalPaid = cotisations.reduce((s, c) => s + c.amount_paid, 0);
+  const totalRemaining = cotisations.reduce((s, c) => s + c.amount_remaining, 0);
+
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-gray-900">Bonjour, Ama 👋</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Voici un résumé de vos cotisations</p>
+          <h1 className="text-2xl font-black text-gray-900">
+            Bonjour, {prenom} 👋
+          </h1>
+          <p className="text-gray-500 text-sm mt-0.5">
+            Voici un résumé de vos cotisations
+          </p>
         </div>
         <Link href="/catalogue">
           <Button size="sm">
@@ -74,7 +79,7 @@ export default function DashboardPage() {
         <MetricCard
           title="Total engagé"
           value={formatCFA(totalEngaged)}
-          subtitle={`${mockCotisations.length} cotisation(s)`}
+          subtitle={`${cotisations.length} cotisation(s)`}
           icon={Wallet}
           variant="primary"
         />
@@ -97,18 +102,34 @@ export default function DashboardPage() {
       {/* Cotisations actives */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-900">Mes cotisations actives</h2>
-          <Link href="/historique" className="text-sm text-lamanne-accent hover:underline font-medium">
+          <h2 className="text-lg font-bold text-gray-900">
+            Mes cotisations actives
+          </h2>
+          <Link
+            href="/historique"
+            className="text-sm text-lamanne-accent hover:underline font-medium"
+          >
             Voir tout
           </Link>
         </div>
 
-        {mockCotisations.length === 0 ? (
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2].map((i) => (
+              <div
+                key={i}
+                className="bg-white rounded-2xl border border-gray-100 h-36 animate-pulse"
+              />
+            ))}
+          </div>
+        ) : cotisations.length === 0 ? (
           <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
             <div className="w-14 h-14 bg-lamanne-light rounded-2xl flex items-center justify-center mx-auto mb-4">
               <ShoppingBag className="h-7 w-7 text-lamanne-accent" />
             </div>
-            <h3 className="font-bold text-gray-700 mb-1">Aucune cotisation en cours</h3>
+            <h3 className="font-bold text-gray-700 mb-1">
+              Aucune cotisation en cours
+            </h3>
             <p className="text-gray-400 text-sm mb-5">
               Commencez à cotiser pour vos articles préférés depuis le catalogue.
             </p>
@@ -121,7 +142,7 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {mockCotisations.map((cotisation) => (
+            {cotisations.map((cotisation) => (
               <CotisationCard
                 key={cotisation.id}
                 cotisation={cotisation}

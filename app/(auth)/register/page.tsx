@@ -31,7 +31,7 @@ export default function RegisterPage() {
       return;
     }
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -42,9 +42,9 @@ export default function RegisterPage() {
       },
     });
 
-    if (error) {
+    if (signUpError) {
       setError(
-        error.message === "User already registered"
+        signUpError.message === "User already registered"
           ? "Cet email est déjà utilisé. Veuillez vous connecter."
           : "Une erreur est survenue. Veuillez réessayer."
       );
@@ -52,6 +52,14 @@ export default function RegisterPage() {
       return;
     }
 
+    // Si une session est directement créée (confirmation email désactivée)
+    if (data.session) {
+      router.push("/dashboard");
+      router.refresh();
+      return;
+    }
+
+    // Sinon, afficher le message de confirmation par email
     setSuccess(true);
     setLoading(false);
   };
@@ -65,8 +73,9 @@ export default function RegisterPage() {
           </div>
           <h2 className="text-2xl font-black text-gray-900 mb-2">Compte créé !</h2>
           <p className="text-gray-500 mb-6">
-            Un email de confirmation vous a été envoyé à <strong>{email}</strong>.
-            Veuillez vérifier votre boîte mail pour activer votre compte.
+            Un email de confirmation vous a été envoyé à{" "}
+            <strong>{email}</strong>. Veuillez vérifier votre boîte mail pour
+            activer votre compte.
           </p>
           <Link href="/login">
             <Button className="w-full">Aller à la connexion</Button>
@@ -163,7 +172,11 @@ export default function RegisterPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
               {password && (
@@ -206,7 +219,10 @@ export default function RegisterPage() {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-500">
               Déjà un compte ?{" "}
-              <Link href="/login" className="text-lamanne-accent font-semibold hover:underline">
+              <Link
+                href="/login"
+                className="text-lamanne-accent font-semibold hover:underline"
+              >
                 Se connecter
               </Link>
             </p>

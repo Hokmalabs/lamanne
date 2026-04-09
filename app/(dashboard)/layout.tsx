@@ -1,16 +1,31 @@
 import { Sidebar, BottomNav } from "@/components/navbar";
 import { Bell } from "lucide-react";
-import Link from "next/link";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let userName = "Utilisateur";
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .single();
+    if (profile?.full_name) userName = profile.full_name;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar (desktop) */}
-      <Sidebar userName="Kouassi Ama" />
+      <Sidebar userName={userName} />
 
       {/* Main content */}
       <div className="md:ml-64 flex flex-col min-h-screen">
@@ -24,7 +39,6 @@ export default function DashboardLayout({
           </div>
           <button className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors">
             <Bell className="h-5 w-5 text-gray-600" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
           </button>
         </header>
 
@@ -34,7 +48,6 @@ export default function DashboardLayout({
           <div className="flex items-center gap-3">
             <button className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors">
               <Bell className="h-5 w-5 text-gray-600" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
             </button>
           </div>
         </div>
