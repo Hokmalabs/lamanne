@@ -1,22 +1,9 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { formatCFA, formatDate, calculateProgress } from "@/lib/utils";
 import { ProgressBar } from "@/components/progress-bar";
 import { cn } from "@/lib/utils";
 import { ShoppingBag } from "lucide-react";
-
-type Row = {
-  id: string;
-  total_price: number;
-  amount_paid: number;
-  amount_remaining: number;
-  status: string;
-  created_at: string;
-  product: { name: string };
-  profile: { full_name: string };
-};
+import Link from "next/link";
 
 type Filter = "all" | "active" | "completed" | "cancelled";
 
@@ -29,47 +16,44 @@ const statusLabels: Record<string, string> = {
   active: "En cours", completed: "Terminé", cancelled: "Annulé",
 };
 
-export default function AdminCotisationsPage() {
-  const [rows, setRows] = useState<Row[]>([]);
-  const [filter, setFilter] = useState<Filter>("all");
-  const [loading, setLoading] = useState(true);
+const filters: { key: Filter; label: string }[] = [
+  { key: "all",       label: "Toutes" },
+  { key: "active",    label: "En cours" },
+  { key: "completed", label: "Terminées" },
+  { key: "cancelled", label: "Annulées" },
+];
 
-  useEffect(() => {
-    async function fetch() {
-      let q = supabase
-        .from("cotisations")
-        .select("id, total_price, amount_paid, amount_remaining, status, created_at, product:products(name), profile:profiles(full_name)")
-        .order("created_at", { ascending: false });
+export default async function AdminCotisationsPage({
+  searchParams,
+}: {
+  searchParams: { filter?: string };
+}) {
+  const filter = (searchParams.filter as Filter) || "all";
 
-      if (filter !== "all") q = q.eq("status", filter);
+  let query = supabaseAdmin
+    .from("cotisations")
+    .select("*, profiles(full_name, phone), products(name, price)")
+    .order("created_at", { ascending: false });
 
-      const { data } = await q;
-      if (data) setRows(data as unknown as Row[]);
-      setLoading(false);
-    }
-    fetch();
-  }, [filter]);
+  if (filter !== "all") query = query.eq("status", filter);
 
-  const filters: { key: Filter; label: string }[] = [
-    { key: "all",       label: "Toutes" },
-    { key: "active",    label: "En cours" },
-    { key: "completed", label: "Terminées" },
-    { key: "cancelled", label: "Annulées" },
-  ];
+  const { data: rows, error } = await query;
+
+  if (error) console.error("[Admin Cotisations] fetch error:", error.message);
 
   return (
     <div className="space-y-5 max-w-5xl">
       <div>
         <h1 className="text-2xl font-black text-gray-900">Cotisations</h1>
-        <p className="text-gray-500 text-sm mt-0.5">{rows.length} cotisation(s)</p>
+        <p className="text-gray-500 text-sm mt-0.5">{rows?.length ?? 0} cotisation(s)</p>
       </div>
 
       {/* Filtres */}
       <div className="flex gap-2 flex-wrap">
         {filters.map(({ key, label }) => (
-          <button
+          <Link
             key={key}
-            onClick={() => { setFilter(key); setLoading(true); }}
+            href={key === "all" ? "/admin/cotisations" : `/admin/cotisations?filter=${key}`}
             className={cn(
               "px-4 py-2 rounded-full text-sm font-semibold transition-all",
               filter === key
@@ -78,26 +62,18 @@ export default function AdminCotisationsPage() {
             )}
           >
             {label}
-          </button>
+          </Link>
         ))}
       </div>
 
       {/* Tableau */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        {loading && (
-          <div className="p-8 space-y-3">
-            {[1, 2, 3].map((i) => <div key={i} className="h-12 bg-gray-100 rounded-xl animate-pulse" />)}
-          </div>
-        )}
-
-        {!loading && rows.length === 0 && (
+        {!rows || rows.length === 0 ? (
           <div className="p-10 text-center">
             <ShoppingBag className="h-8 w-8 text-gray-300 mx-auto mb-2" />
             <p className="text-gray-400 text-sm">Aucune cotisation</p>
           </div>
-        )}
-
-        {!loading && rows.length > 0 && (
+        ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -111,15 +87,18 @@ export default function AdminCotisationsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {rows.map((row) => {
+                {rows.map((row: any) => {
                   const progress = calculateProgress(row.amount_paid, row.total_price);
                   return (
                     <tr key={row.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-gray-900">
-                        {row.profile?.full_name ?? "—"}
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-gray-900">{row.profiles?.full_name ?? "—"}</p>
+                        {row.profiles?.phone && (
+                          <p className="text-xs text-gray-400">{row.profiles.phone}</p>
+                        )}
                       </td>
-                      <td className="px-4 py-3 text-gray-600 max-w-[200px] truncate">
-                        {row.product?.name ?? "—"}
+                      <td className="px-4 py-3 text-gray-600 max-w-[180px] truncate">
+                        {row.products?.name ?? "—"}
                       </td>
                       <td className="px-4 py-3 text-right font-semibold text-gray-800">
                         {formatCFA(row.amount_paid)}
