@@ -30,6 +30,12 @@ export default async function AdminCotisationsPage({
 }) {
   const filter = (searchParams.filter as Filter) || "all";
 
+  // Debug simple sans JOIN
+  const { data: simpleData, error: simpleError } = await supabaseAdmin
+    .from("cotisations")
+    .select("*");
+  console.log("[Admin simple] count:", simpleData?.length, "| error:", simpleError?.message);
+
   let query = supabaseAdmin
     .from("cotisations")
     .select("*, profiles(full_name, phone), products(name, price)")
@@ -39,7 +45,8 @@ export default async function AdminCotisationsPage({
 
   const { data: rows, error } = await query;
 
-  if (error) console.error("[Admin Cotisations] fetch error:", error.message);
+  console.log("[Admin Cotisations] count:", rows?.length, "| error:", error?.message);
+  console.log("[Admin Cotisations] sample:", JSON.stringify(rows?.slice(0, 2)));
 
   return (
     <div className="space-y-5 max-w-5xl">

@@ -4,13 +4,21 @@ import { RefreshCw } from "lucide-react";
 import { RemboursementActions } from "./RemboursementActions";
 
 export default async function AdminRemboursementsPage() {
+  // Debug simple sans JOIN
+  const { data: simpleData, error: simpleError } = await supabaseAdmin
+    .from("cotisations")
+    .select("id, refund_status")
+    .eq("refund_status", "requested");
+  console.log("[Admin Remboursements simple] count:", simpleData?.length, "| error:", simpleError?.message);
+
   const { data: rows, error } = await supabaseAdmin
     .from("cotisations")
     .select("*, profiles(full_name, phone), products(name)")
     .eq("refund_status", "requested")
     .order("refund_requested_at", { ascending: false });
 
-  if (error) console.error("[Admin Remboursements] fetch error:", error.message);
+  console.log("[Admin Remboursements] count:", rows?.length, "| error:", error?.message);
+  console.log("[Admin Remboursements] sample:", JSON.stringify(rows?.slice(0, 2)));
 
   return (
     <div className="space-y-5 max-w-4xl">

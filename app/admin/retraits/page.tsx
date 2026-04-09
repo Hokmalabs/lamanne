@@ -14,7 +14,14 @@ export default async function AdminRetraitsPage({
 }) {
   const tab = (searchParams.tab as Tab) || "pending";
 
-  const [{ data: pending }, { data: done }] = await Promise.all([
+  // Debug simple sans JOIN
+  const { data: simpleData, error: simpleError } = await supabaseAdmin
+    .from("cotisations")
+    .select("id, status, withdrawn_at")
+    .eq("status", "completed");
+  console.log("[Admin Retraits simple] count:", simpleData?.length, "| error:", simpleError?.message);
+
+  const [{ data: pending, error: pendingError }, { data: done, error: doneError }] = await Promise.all([
     supabaseAdmin
       .from("cotisations")
       .select("*, profiles(full_name, phone), products(name)")
@@ -29,6 +36,9 @@ export default async function AdminRetraitsPage({
       .order("withdrawn_at", { ascending: false })
       .limit(50),
   ]);
+
+  console.log("[Admin Retraits] pending:", pending?.length, "| error:", pendingError?.message);
+  console.log("[Admin Retraits] done:", done?.length, "| error:", doneError?.message);
 
   const current = tab === "pending" ? (pending ?? []) : (done ?? []);
 
