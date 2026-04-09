@@ -90,8 +90,8 @@ export default function ProductDetailPage() {
         total_price: product.price,
         amount_paid: firstPaymentNum,
         amount_remaining: Math.max(0, product.price - firstPaymentNum),
-        nb_tranches: 0,
-        tranche_amount: 0,
+        nb_tranches: 1,
+        tranche_amount: firstPaymentNum,
         status: isComplete ? "completed" : "active",
         withdrawal_code: isComplete
           ? String(Math.floor(100000 + Math.random() * 900000))
