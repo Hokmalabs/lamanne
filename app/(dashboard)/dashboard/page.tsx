@@ -5,13 +5,21 @@ import { MetricCard } from "@/components/metric-card";
 import { CotisationCard } from "@/components/cotisation-card";
 import { Button } from "@/components/ui/button";
 import { formatCFA } from "@/lib/utils";
-import { Cotisation } from "@/lib/types";
-import { Wallet, TrendingUp, Clock, Plus, ShoppingBag } from "lucide-react";
+import { Cotisation, Product } from "@/lib/types";
+import {
+  Wallet,
+  TrendingUp,
+  Clock,
+  Plus,
+  ShoppingBag,
+  CheckCircle,
+  QrCode,
+} from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 type CotisationWithProduct = Cotisation & {
-  product: { name: string; images: string[] };
+  product: Pick<Product, "name" | "images" | "is_lot">;
 };
 
 export default function DashboardPage() {
@@ -32,24 +40,23 @@ export default function DashboardPage() {
         .eq("id", user.id)
         .single();
 
-      if (profile?.full_name) {
-        setPrenom(profile.full_name.split(" ")[0]);
-      }
+      if (profile?.full_name) setPrenom(profile.full_name.split(" ")[0]);
 
       const { data: cotisData } = await supabase
         .from("cotisations")
-        .select("*, product:products(name, images)")
+        .select("*, product:products(name, images, is_lot)")
         .eq("user_id", user.id)
-        .eq("status", "active")
+        .in("status", ["active", "completed"])
         .order("created_at", { ascending: false });
 
       if (cotisData) setCotisations(cotisData as CotisationWithProduct[]);
       setLoading(false);
     }
-
     fetchData();
   }, []);
 
+  const active = cotisations.filter((c) => c.status === "active");
+  const completed = cotisations.filter((c) => c.status === "completed");
   const totalEngaged = cotisations.reduce((s, c) => s + c.total_price, 0);
   const totalPaid = cotisations.reduce((s, c) => s + c.amount_paid, 0);
   const totalRemaining = cotisations.reduce((s, c) => s + c.amount_remaining, 0);
@@ -99,6 +106,44 @@ export default function DashboardPage() {
         />
       </div>
 
+      {/* Section "Prêt à retirer" */}
+      {!loading && completed.length > 0 && (
+        <div>
+          <h2 className="text-lg font-bold text-lamanne-success mb-3 flex items-center gap-2">
+            <CheckCircle className="h-5 w-5" />
+            Prêt à retirer ({completed.length})
+          </h2>
+          <div className="space-y-3">
+            {completed.map((c) => (
+              <div
+                key={c.id}
+                className="bg-white border border-lamanne-success/30 rounded-2xl p-4 flex items-center gap-4"
+              >
+                <div className="w-10 h-10 bg-lamanne-success/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <QrCode className="h-5 w-5 text-lamanne-success" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900 text-sm truncate">
+                    {c.product.name}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Code :{" "}
+                    <span className="font-black text-lamanne-success tracking-widest">
+                      {c.withdrawal_code}
+                    </span>
+                  </p>
+                </div>
+                <Link href="/cotisations">
+                  <Button size="sm" variant="outline" className="flex-shrink-0 text-xs">
+                    Voir
+                  </Button>
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Cotisations actives */}
       <div>
         <div className="flex items-center justify-between mb-4">
@@ -106,7 +151,7 @@ export default function DashboardPage() {
             Mes cotisations actives
           </h2>
           <Link
-            href="/historique"
+            href="/cotisations"
             className="text-sm text-lamanne-accent hover:underline font-medium"
           >
             Voir tout
@@ -122,7 +167,7 @@ export default function DashboardPage() {
               />
             ))}
           </div>
-        ) : cotisations.length === 0 ? (
+        ) : active.length === 0 ? (
           <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
             <div className="w-14 h-14 bg-lamanne-light rounded-2xl flex items-center justify-center mx-auto mb-4">
               <ShoppingBag className="h-7 w-7 text-lamanne-accent" />
@@ -142,15 +187,20 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {cotisations.map((cotisation) => (
+            {active.slice(0, 3).map((cotisation) => (
               <CotisationCard
                 key={cotisation.id}
                 cotisation={cotisation}
-                onPay={(id) => {
-                  console.log("Payer tranche pour cotisation:", id);
-                }}
+                onPay={() => {}}
               />
             ))}
+            {active.length > 3 && (
+              <Link href="/cotisations">
+                <Button variant="outline" className="w-full">
+                  Voir toutes les cotisations ({active.length})
+                </Button>
+              </Link>
+            )}
           </div>
         )}
       </div>

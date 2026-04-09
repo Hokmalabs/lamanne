@@ -3,6 +3,7 @@ export interface Profile {
   full_name: string;
   phone: string;
   avatar_url: string | null;
+  role: 'user' | 'admin';
   created_at: string;
 }
 
@@ -23,6 +24,10 @@ export interface Product {
   images: string[];
   stock: number;
   is_active: boolean;
+  is_lot: boolean;
+  lot_details: string | null;
+  max_tranches: number;
+  min_tranches: number;
   created_at: string;
   category?: Category;
 }
@@ -39,6 +44,11 @@ export interface Cotisation {
   status: 'active' | 'completed' | 'cancelled';
   withdrawal_code: string | null;
   withdrawn_at: string | null;
+  cancellation_reason: string | null;
+  cancelled_at: string | null;
+  refund_status: 'none' | 'requested' | 'approved' | 'rejected';
+  refund_requested_at: string | null;
+  refund_amount: number;
   created_at: string;
 }
 
