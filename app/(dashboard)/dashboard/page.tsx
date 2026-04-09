@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { MetricCard } from "@/components/metric-card";
-import { CotisationCard } from "@/components/cotisation-card";
 import { Button } from "@/components/ui/button";
-import { formatCFA } from "@/lib/utils";
+import { formatCFA, formatDate } from "@/lib/utils";
 import { Cotisation, Product } from "@/lib/types";
 import {
   Wallet,
@@ -14,13 +13,24 @@ import {
   ShoppingBag,
   CheckCircle,
   QrCode,
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 type CotisationWithProduct = Cotisation & {
-  product: Pick<Product, "name" | "images" | "is_lot">;
+  product: Pick<Product, "name" | "images" | "is_lot" | "max_tranches">;
 };
+
+function addMonths(dateStr: string, months: number): Date {
+  const d = new Date(dateStr);
+  d.setMonth(d.getMonth() + months);
+  return d;
+}
+
+function daysUntil(date: Date): number {
+  return Math.floor((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+}
 
 export default function DashboardPage() {
   const [cotisations, setCotisations] = useState<CotisationWithProduct[]>([]);
@@ -44,7 +54,7 @@ export default function DashboardPage() {
 
       const { data: cotisData } = await supabase
         .from("cotisations")
-        .select("*, product:products(name, images, is_lot)")
+        .select("*, product:products(name, images, is_lot, max_tranches)")
         .eq("user_id", user.id)
         .in("status", ["active", "completed"])
         .order("created_at", { ascending: false });
@@ -187,13 +197,39 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {active.slice(0, 3).map((cotisation) => (
-              <CotisationCard
-                key={cotisation.id}
-                cotisation={cotisation}
-                onPay={() => {}}
-              />
-            ))}
+            {active.slice(0, 3).map((cotisation) => {
+              const deadline = addMonths(cotisation.created_at, cotisation.product.max_tranches);
+              const days = daysUntil(deadline);
+              return (
+                <Link key={cotisation.id} href={`/cotisations/${cotisation.id}`}>
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <p className="font-semibold text-gray-900 text-sm leading-snug">{cotisation.product.name}</p>
+                      {days <= 30 && days >= 0 && (
+                        <span className="text-xs bg-red-100 text-red-600 font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
+                          <AlertTriangle className="h-3 w-3" />
+                          {days === 0 ? "Expire aujourd'hui" : `${days}j restants`}
+                        </span>
+                      )}
+                      {days < 0 && (
+                        <span className="text-xs bg-red-100 text-red-700 font-semibold px-2 py-0.5 rounded-full flex-shrink-0">Expiré</span>
+                      )}
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+                      <span>{formatCFA(cotisation.amount_paid)} payés</span>
+                      <span className="font-semibold text-gray-700">{Math.round((cotisation.amount_paid / cotisation.total_price) * 100)}%</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-lamanne-primary rounded-full" style={{ width: `${Math.min(100, Math.round((cotisation.amount_paid / cotisation.total_price) * 100))}%` }} />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Limite : {formatDate(deadline.toISOString())}
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
             {active.length > 3 && (
               <Link href="/cotisations">
                 <Button variant="outline" className="w-full">

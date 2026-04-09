@@ -49,6 +49,7 @@ export interface Cotisation {
   refund_status: 'none' | 'requested' | 'approved' | 'rejected';
   refund_requested_at: string | null;
   refund_amount: number;
+  deadline: string | null;
   created_at: string;
 }
 

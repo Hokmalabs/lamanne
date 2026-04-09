@@ -4,33 +4,33 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Product, Cotisation } from "@/lib/types";
-import { formatCFA } from "@/lib/utils";
+import { formatCFA, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   ShoppingBag,
   ChevronLeft,
   Package,
   CreditCard,
   AlertTriangle,
-  CheckCircle,
+  Calendar,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 
-const TRANCHE_OPTIONS = [1, 2, 3, 6, 10, 12];
+function addMonths(months: number): Date {
+  const d = new Date();
+  d.setMonth(d.getMonth() + months);
+  return d;
+}
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
 
   const [product, setProduct] = useState<Product | null>(null);
-  const [existingCotisation, setExistingCotisation] =
-    useState<Cotisation | null>(null);
+  const [existingCotisation, setExistingCotisation] = useState<Cotisation | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [nbTranches, setNbTranches] = useState(3);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [firstPayment, setFirstPayment] = useState<number | "">(1000);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -42,12 +42,6 @@ export default function ProductDetailPage() {
 
       if (!prod) { setLoading(false); return; }
       setProduct(prod as Product);
-
-      // Clamp nbTranches dans la plage autorisée
-      const validOptions = TRANCHE_OPTIONS.filter(
-        (n) => n >= prod.min_tranches && n <= prod.max_tranches
-      );
-      if (validOptions.length > 0) setNbTranches(validOptions[Math.floor(validOptions.length / 2)]);
 
       if (user) {
         const { data: cot } = await supabase
@@ -65,40 +59,41 @@ export default function ProductDetailPage() {
     fetchData();
   }, [id]);
 
-  const validOptions = product
-    ? TRANCHE_OPTIONS.filter(
-        (n) => n >= product.min_tranches && n <= product.max_tranches
-      )
-    : [];
-
-  const trancheAmount = product
-    ? Math.ceil(product.price / nbTranches)
-    : 0;
+  const deadline = product ? addMonths(product.max_tranches) : null;
+  const firstPaymentNum = typeof firstPayment === "number" ? firstPayment : 0;
+  const remaining = product ? product.price - firstPaymentNum : 0;
 
   const handleStartCotisation = async () => {
+    if (!product) return;
+    if (firstPaymentNum < 1000) {
+      setErrorMsg("Le premier versement doit être d'au moins 1 000 FCFA.");
+      return;
+    }
+    if (firstPaymentNum > product.price) {
+      setErrorMsg("Le versement ne peut pas dépasser le prix total.");
+      return;
+    }
+
     setSaving(true);
     setErrorMsg(null);
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user || !product) { setSaving(false); return; }
+    if (!user) { setSaving(false); return; }
 
-    const total = product.price;
-    const tranche = Math.ceil(total / nbTranches);
-    const remaining = total - tranche;
+    const isComplete = firstPaymentNum >= product.price;
 
-    // 1. Créer la cotisation
     const { data: newCot, error: cotError } = await supabase
       .from("cotisations")
       .insert({
         user_id: user.id,
         product_id: product.id,
-        total_price: total,
-        amount_paid: tranche,
-        amount_remaining: remaining,
-        nb_tranches: nbTranches,
-        tranche_amount: tranche,
-        status: remaining <= 0 ? "completed" : "active",
-        withdrawal_code: remaining <= 0
+        total_price: product.price,
+        amount_paid: firstPaymentNum,
+        amount_remaining: Math.max(0, product.price - firstPaymentNum),
+        nb_tranches: 0,
+        tranche_amount: 0,
+        status: isComplete ? "completed" : "active",
+        withdrawal_code: isComplete
           ? String(Math.floor(100000 + Math.random() * 900000))
           : null,
       })
@@ -111,11 +106,10 @@ export default function ProductDetailPage() {
       return;
     }
 
-    // 2. Enregistrer le premier paiement (simulé)
     await supabase.from("payments").insert({
       cotisation_id: newCot.id,
       user_id: user.id,
-      amount: tranche,
+      amount: firstPaymentNum,
       status: "success",
       payment_method: "mobile_money",
       paid_at: new Date().toISOString(),
@@ -148,7 +142,6 @@ export default function ProductDetailPage() {
 
   return (
     <div className="max-w-xl mx-auto space-y-5">
-      {/* Retour */}
       <Link
         href="/catalogue"
         className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"
@@ -162,11 +155,7 @@ export default function ProductDetailPage() {
         <div className="relative h-52 bg-lamanne-light flex items-center justify-center">
           {product.images?.[0] ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={product.images[0]}
-              alt={product.name}
-              className="w-full h-full object-cover"
-            />
+            <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
           ) : (
             <ShoppingBag className="h-16 w-16 text-lamanne-accent/40" />
           )}
@@ -176,23 +165,16 @@ export default function ProductDetailPage() {
             </span>
           )}
         </div>
-
         <div className="p-5">
           {product.category?.name && (
             <p className="text-xs text-lamanne-accent font-semibold uppercase tracking-wide mb-1">
               {product.category.name}
             </p>
           )}
-          <h1 className="text-xl font-black text-gray-900 leading-snug">
-            {product.name}
-          </h1>
-          <p className="text-2xl font-black text-lamanne-primary mt-2">
-            {formatCFA(product.price)}
-          </p>
+          <h1 className="text-xl font-black text-gray-900 leading-snug">{product.name}</h1>
+          <p className="text-2xl font-black text-lamanne-primary mt-2">{formatCFA(product.price)}</p>
           {product.description && (
-            <p className="text-sm text-gray-500 mt-2 leading-relaxed">
-              {product.description}
-            </p>
+            <p className="text-sm text-gray-500 mt-2 leading-relaxed">{product.description}</p>
           )}
           {product.stock > 0 && product.stock <= 5 && (
             <p className="text-xs text-lamanne-warning font-semibold mt-2">
@@ -210,20 +192,32 @@ export default function ProductDetailPage() {
             <h2 className="font-bold text-gray-900">Contenu du lot</h2>
           </div>
           <ul className="space-y-1.5">
-            {product.lot_details
-              .split("\n")
-              .filter((l) => l.trim())
-              .map((line, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-lamanne-accent flex-shrink-0" />
-                  {line.trim()}
-                </li>
-              ))}
+            {product.lot_details.split("\n").filter((l) => l.trim()).map((line, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-lamanne-accent flex-shrink-0" />
+                {line.trim()}
+              </li>
+            ))}
           </ul>
         </div>
       )}
 
-      {/* Avertissement cotisation existante */}
+      {/* Délai */}
+      <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex gap-3">
+        <Calendar className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+        <div className="text-sm">
+          <p className="font-semibold text-blue-800">
+            Vous avez {product.max_tranches} mois pour compléter votre cotisation
+          </p>
+          {deadline && (
+            <p className="text-blue-600 mt-0.5">
+              Date limite : {formatDate(deadline.toISOString())}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Cotisation existante */}
       {existingCotisation && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 flex gap-3">
           <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
@@ -239,10 +233,10 @@ export default function ProductDetailPage() {
         </div>
       )}
 
-      {/* Configurateur de cotisation */}
+      {/* Configurateur */}
       {!existingCotisation && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5">
-          <h2 className="font-bold text-gray-900">Configurer ma cotisation</h2>
+          <h2 className="font-bold text-gray-900">Démarrer ma cotisation</h2>
 
           {errorMsg && (
             <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
@@ -250,63 +244,58 @@ export default function ProductDetailPage() {
             </div>
           )}
 
-          {/* Sélecteur tranches */}
-          <div>
-            <label className="text-sm font-semibold text-gray-700 block mb-2">
-              Durée de cotisation
+          {/* Premier versement */}
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-gray-700 block">
+              Premier versement (FCFA)
             </label>
-            <div className="flex gap-2 flex-wrap">
-              {validOptions.map((n) => (
-                <button
-                  key={n}
-                  onClick={() => setNbTranches(n)}
-                  className={cn(
-                    "px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all",
-                    nbTranches === n
-                      ? "border-lamanne-primary bg-lamanne-primary text-white"
-                      : "border-gray-200 text-gray-600 hover:border-lamanne-accent hover:text-lamanne-accent"
-                  )}
-                >
-                  {n} mois
-                </button>
-              ))}
-            </div>
+            <input
+              type="number"
+              min={1000}
+              max={product.price}
+              step={500}
+              value={firstPayment}
+              onChange={(e) => setFirstPayment(e.target.value === "" ? "" : Number(e.target.value))}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-lg font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-lamanne-primary"
+              placeholder="ex : 25 000"
+            />
+            <p className="text-xs text-gray-400">Minimum 1 000 FCFA</p>
           </div>
 
           {/* Résumé */}
-          <div className="bg-lamanne-light rounded-xl p-4 space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Montant par tranche</span>
-              <span className="font-black text-lamanne-primary text-base">
-                {formatCFA(trancheAmount)}
-              </span>
+          {firstPaymentNum >= 1000 && (
+            <div className="bg-lamanne-light rounded-xl p-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Vous payez aujourd&apos;hui</span>
+                <span className="font-black text-lamanne-primary text-base">
+                  {formatCFA(firstPaymentNum)}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Reste à verser</span>
+                <span className="font-semibold text-gray-800">{formatCFA(Math.max(0, remaining))}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Prix total</span>
+                <span className="font-semibold text-gray-800">{formatCFA(product.price)}</span>
+              </div>
+              {deadline && remaining > 0 && (
+                <div className="border-t border-lamanne-accent/20 pt-2 mt-2">
+                  <p className="text-xs text-gray-500 text-center">
+                    Il vous reste{" "}
+                    <strong className="text-lamanne-primary">{formatCFA(remaining)}</strong>{" "}
+                    à verser avant le{" "}
+                    <strong>{formatDate(deadline.toISOString())}</strong>
+                  </p>
+                </div>
+              )}
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Durée totale</span>
-              <span className="font-semibold text-gray-800">{nbTranches} mois</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Prix total</span>
-              <span className="font-semibold text-gray-800">
-                {formatCFA(product.price)}
-              </span>
-            </div>
-            <div className="border-t border-lamanne-accent/20 pt-2 mt-2">
-              <p className="text-xs text-gray-500 text-center">
-                Vous payez{" "}
-                <strong className="text-lamanne-primary">{formatCFA(trancheAmount)}</strong>{" "}
-                aujourd&apos;hui, puis{" "}
-                <strong>{formatCFA(trancheAmount)}/mois</strong>{" "}
-                pendant {nbTranches - 1} mois supplémentaire
-                {nbTranches > 2 ? "s" : ""}
-              </p>
-            </div>
-          </div>
+          )}
 
           <Button
             className="w-full h-12 text-base font-bold"
             onClick={handleStartCotisation}
-            disabled={saving || product.stock === 0}
+            disabled={saving || product.stock === 0 || firstPaymentNum < 1000}
           >
             {saving ? (
               <span className="flex items-center gap-2">
@@ -326,13 +315,6 @@ export default function ProductDetailPage() {
               Ce produit est en rupture de stock.
             </p>
           )}
-        </div>
-      )}
-
-      {successMsg && (
-        <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex gap-3">
-          <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-          <p className="text-sm text-green-700 font-medium">{successMsg}</p>
         </div>
       )}
     </div>
