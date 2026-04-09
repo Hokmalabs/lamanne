@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { formatCFA, formatDate, calculateProgress } from "@/lib/utils";
 import { ProgressBar } from "@/components/progress-bar";

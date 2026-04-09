@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { formatCFA, formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
