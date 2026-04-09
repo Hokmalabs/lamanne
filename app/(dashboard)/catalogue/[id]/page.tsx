@@ -101,7 +101,8 @@ export default function ProductDetailPage() {
       .single();
 
     if (cotError || !newCot) {
-      setErrorMsg("Erreur lors de la création de la cotisation. Réessayez.");
+      console.error("[Cotisation] insert error:", cotError);
+      setErrorMsg(`Erreur : ${cotError?.message ?? "création impossible"}`);
       setSaving(false);
       return;
     }
