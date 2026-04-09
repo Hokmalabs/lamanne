@@ -43,10 +43,11 @@ export default function RegisterPage() {
     });
 
     if (signUpError) {
+      console.error("[Register] Supabase signUp error:", signUpError);
       setError(
         signUpError.message === "User already registered"
           ? "Cet email est déjà utilisé. Veuillez vous connecter."
-          : "Une erreur est survenue. Veuillez réessayer."
+          : `Erreur : ${signUpError.message}`
       );
       setLoading(false);
       return;
