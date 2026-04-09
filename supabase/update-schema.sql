@@ -144,18 +144,24 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('products', 'products', true)
 ON CONFLICT (id) DO NOTHING;
 
-CREATE POLICY "Images produits publiques"
-  ON storage.objects FOR SELECT
-  USING (bucket_id = 'products')
-  ON CONFLICT DO NOTHING;
+DO $$
+BEGIN
+  CREATE POLICY "Images produits publiques"
+    ON storage.objects FOR SELECT
+    USING (bucket_id = 'products');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "Admins uploadent les images"
-  ON storage.objects FOR INSERT
-  WITH CHECK (
-    bucket_id = 'products'
-    AND EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  )
-  ON CONFLICT DO NOTHING;
+DO $$
+BEGIN
+  CREATE POLICY "Admins uploadent les images"
+    ON storage.objects FOR INSERT
+    WITH CHECK (
+      bucket_id = 'products'
+      AND EXISTS (
+        SELECT 1 FROM profiles
+        WHERE id = auth.uid() AND role = 'admin'
+      )
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

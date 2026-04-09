@@ -5,26 +5,23 @@ import AdminSidebar from "./AdminSidebar";
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createSupabaseServerClient();
 
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  console.log("[Admin Layout] user:", user?.id ?? "null", "| error:", userError?.message ?? "none");
+  const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     redirect("/login");
   }
 
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
-  console.log("[Admin Layout] profile:", JSON.stringify(profile), "| error:", profileError?.message ?? "none");
+
+  console.log("[AdminLayout] user.id:", user.id, "| role:", profile?.role ?? "null");
 
   if (!profile || profile.role !== "admin") {
-    console.log("[Admin Layout] role check failed → redirect /dashboard");
     redirect("/dashboard");
   }
-
-  console.log("[Admin Layout] access granted ✓");
 
   return (
     <div className="min-h-screen bg-gray-50">
