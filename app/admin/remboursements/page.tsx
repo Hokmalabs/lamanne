@@ -9,18 +9,23 @@ export default async function AdminRemboursementsPage() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const { data: rows, error } = await admin
+  const { data: raw, error } = await admin
     .from("cotisations")
-    .select(`
-      id, refund_amount, refund_status, refund_requested_at, cancellation_reason,
-      amount_paid, total_price,
-      profiles!cotisations_user_id_fkey(full_name, phone),
-      products!cotisations_product_id_fkey(name)
-    `)
+    .select("*")
     .eq("refund_status", "requested")
     .order("refund_requested_at", { ascending: false });
 
-  console.log("[Admin Remboursements] count:", rows?.length, "error:", error?.message);
+  console.log("[Admin Remboursements] count:", raw?.length, "error:", error?.message);
+
+  const rows = await Promise.all(
+    (raw ?? []).map(async (c) => {
+      const [{ data: profile }, { data: product }] = await Promise.all([
+        admin.from("profiles").select("full_name, phone").eq("id", c.user_id).single(),
+        admin.from("products").select("name").eq("id", c.product_id).single(),
+      ]);
+      return { ...c, profile, product };
+    })
+  );
 
   const formatFCFA = (amount: number) =>
     new Intl.NumberFormat("fr-FR").format(amount) + " FCFA";
@@ -43,11 +48,11 @@ export default async function AdminRemboursementsPage() {
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-bold text-gray-900">{row.profiles?.full_name ?? "—"}</p>
-                  {row.profiles?.phone && (
-                    <p className="text-xs text-gray-400">{row.profiles.phone}</p>
+                  <p className="font-bold text-gray-900">{row.profile?.full_name ?? "—"}</p>
+                  {row.profile?.phone && (
+                    <p className="text-xs text-gray-400">{row.profile.phone}</p>
                   )}
-                  <p className="text-sm text-gray-500 mt-0.5">{row.products?.name ?? "—"}</p>
+                  <p className="text-sm text-gray-500 mt-0.5">{row.product?.name ?? "—"}</p>
                   {row.refund_requested_at && (
                     <p className="text-xs text-gray-400 mt-1">
                       Demande du {new Date(row.refund_requested_at).toLocaleDateString("fr-FR")}

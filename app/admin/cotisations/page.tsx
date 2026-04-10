@@ -17,21 +17,25 @@ export default async function AdminCotisationsPage({
 
   let query = admin
     .from("cotisations")
-    .select(`
-      id, status, amount_paid, amount_remaining, total_price,
-      nb_tranches, created_at, deadline, refund_status,
-      profiles!cotisations_user_id_fkey(full_name, phone),
-      products!cotisations_product_id_fkey(name, price)
-    `)
+    .select("*")
     .order("created_at", { ascending: false });
 
   if (filter && filter !== "all") {
     query = query.eq("status", filter);
   }
 
-  const { data: cotisations, error } = await query;
+  const { data: raw, error } = await query;
+  console.log("[Admin Cotisations] count:", raw?.length, "error:", error?.message);
 
-  console.log("[Admin Cotisations] count:", cotisations?.length, "error:", error?.message);
+  const cotisations = await Promise.all(
+    (raw ?? []).map(async (c) => {
+      const [{ data: profile }, { data: product }] = await Promise.all([
+        admin.from("profiles").select("full_name, phone").eq("id", c.user_id).single(),
+        admin.from("products").select("name, price").eq("id", c.product_id).single(),
+      ]);
+      return { ...c, profile, product };
+    })
+  );
 
   const formatFCFA = (amount: number) =>
     new Intl.NumberFormat("fr-FR").format(amount) + " FCFA";
@@ -100,10 +104,10 @@ export default async function AdminCotisationsPage({
                   return (
                     <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="px-4 py-3">
-                        <p className="font-medium">{c.profiles?.full_name ?? "—"}</p>
-                        <p className="text-gray-400 text-xs">{c.profiles?.phone ?? ""}</p>
+                        <p className="font-medium">{c.profile?.full_name ?? "—"}</p>
+                        <p className="text-gray-400 text-xs">{c.profile?.phone ?? ""}</p>
                       </td>
-                      <td className="px-4 py-3 text-gray-700">{c.products?.name ?? "—"}</td>
+                      <td className="px-4 py-3 text-gray-700">{c.product?.name ?? "—"}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-24 h-2 bg-gray-200 rounded-full">

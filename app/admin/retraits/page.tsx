@@ -20,33 +20,41 @@ export default async function AdminRetraitsPage({
 
   const tab = (searchParams?.tab as Tab) || "pending";
 
-  const [{ data: pending, error: pendingError }, { data: done, error: doneError }] =
+  const [{ data: rawPending, error: pendingError }, { data: rawDone, error: doneError }] =
     await Promise.all([
       admin
         .from("cotisations")
-        .select(`
-          id, total_price, withdrawal_code, withdrawn_at, created_at,
-          profiles!cotisations_user_id_fkey(full_name, phone),
-          products!cotisations_product_id_fkey(name)
-        `)
+        .select("*")
         .eq("status", "completed")
         .is("withdrawn_at", null)
         .order("created_at", { ascending: true }),
       admin
         .from("cotisations")
-        .select(`
-          id, total_price, withdrawal_code, withdrawn_at, created_at,
-          profiles!cotisations_user_id_fkey(full_name, phone),
-          products!cotisations_product_id_fkey(name)
-        `)
+        .select("*")
         .eq("status", "completed")
         .not("withdrawn_at", "is", null)
         .order("withdrawn_at", { ascending: false })
         .limit(50),
     ]);
 
-  console.log("[Admin Retraits] pending:", pending?.length, "done:", done?.length,
+  console.log("[Admin Retraits] pending:", rawPending?.length, "done:", rawDone?.length,
     "errors:", pendingError?.message, doneError?.message);
+
+  const enrich = async (list: any[]) =>
+    Promise.all(
+      list.map(async (c) => {
+        const [{ data: profile }, { data: product }] = await Promise.all([
+          admin.from("profiles").select("full_name, phone").eq("id", c.user_id).single(),
+          admin.from("products").select("name").eq("id", c.product_id).single(),
+        ]);
+        return { ...c, profile, product };
+      })
+    );
+
+  const [pending, done] = await Promise.all([
+    enrich(rawPending ?? []),
+    enrich(rawDone ?? []),
+  ]);
 
   const current = tab === "pending" ? (pending ?? []) : (done ?? []);
 
@@ -96,11 +104,11 @@ export default async function AdminRetraitsPage({
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <p className="font-bold text-gray-900">{row.profiles?.full_name ?? "—"}</p>
-                  {row.profiles?.phone && (
-                    <p className="text-xs text-gray-400">{row.profiles.phone}</p>
+                  <p className="font-bold text-gray-900">{row.profile?.full_name ?? "—"}</p>
+                  {row.profile?.phone && (
+                    <p className="text-xs text-gray-400">{row.profile.phone}</p>
                   )}
-                  <p className="text-sm text-gray-500">{row.products?.name ?? "—"}</p>
+                  <p className="text-sm text-gray-500">{row.product?.name ?? "—"}</p>
                   <p className="text-sm font-semibold text-lamanne-primary">
                     {formatFCFA(row.total_price)}
                   </p>
