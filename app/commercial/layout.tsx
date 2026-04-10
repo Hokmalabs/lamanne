@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { createClient } from "@supabase/supabase-js";
-import CommercialSidebar from "./CommercialSidebar";
+import { CommercialSidebar, CommercialBottomNav } from "./CommercialSidebar";
+import NotificationBell from "@/components/NotificationBell";
 
 const adminClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,18 +29,38 @@ export default async function CommercialLayout({
     redirect("/dashboard");
   }
 
+  const userName = profile.full_name ?? "Commercial";
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <CommercialSidebar userName={profile.full_name ?? "Commercial"} />
-      <div className="md:ml-60">
-        <header className="bg-white border-b border-gray-100 px-6 h-14 flex items-center justify-between">
-          <h1 className="text-sm font-bold text-gray-500 uppercase tracking-wide">
-            Espace Commercial
-          </h1>
-          <span className="text-xs text-gray-400">{profile.full_name}</span>
+      <CommercialSidebar userName={userName} />
+
+      <div className="md:ml-64 flex flex-col min-h-screen">
+        {/* Mobile header */}
+        <header className="md:hidden sticky top-0 z-20 bg-white border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-lamanne-primary rounded-xl flex items-center justify-center">
+              <span className="text-white font-black text-xs">LM</span>
+            </div>
+            <span className="text-lamanne-primary font-black text-lg">LAMANNE</span>
+          </div>
+          <NotificationBell />
         </header>
-        <main className="p-6">{children}</main>
+
+        {/* Desktop top bar */}
+        <div className="hidden md:flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100">
+          <div />
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+          </div>
+        </div>
+
+        <main className="flex-1 px-4 py-5 md:px-8 md:py-6 pb-24 md:pb-6">
+          {children}
+        </main>
       </div>
+
+      <CommercialBottomNav />
     </div>
   );
 }

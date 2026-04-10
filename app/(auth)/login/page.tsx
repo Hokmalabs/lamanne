@@ -36,13 +36,21 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const getRedirect = async (userId: string): Promise<string> => {
-    if (redirectTo !== "/dashboard") return redirectTo;
+  const getRedirectAndCheck = async (userId: string): Promise<string | null> => {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, is_suspended")
       .eq("id", userId)
       .single();
+
+    if (profile?.is_suspended) {
+      await supabase.auth.signOut();
+      setError("Votre compte a été suspendu. Contactez l'administrateur.");
+      setLoading(false);
+      return null;
+    }
+
+    if (redirectTo !== "/dashboard") return redirectTo;
     if (profile?.role === "super_admin" || profile?.role === "admin") return "/admin";
     if (profile?.role === "commercial") return "/commercial";
     return "/dashboard";
@@ -58,7 +66,8 @@ function LoginForm() {
       setLoading(false);
       return;
     }
-    const dest = await getRedirect(data.user.id);
+    const dest = await getRedirectAndCheck(data.user.id);
+    if (!dest) return;
     router.push(dest);
     router.refresh();
   };
@@ -86,7 +95,8 @@ function LoginForm() {
       return;
     }
     const { data: { user } } = await supabase.auth.getUser();
-    const dest = user ? await getRedirect(user.id) : "/dashboard";
+    const dest = user ? await getRedirectAndCheck(user.id) : "/dashboard";
+    if (!dest) return;
     router.push(dest);
     router.refresh();
   };

@@ -96,31 +96,33 @@ export default function RegisterPage() {
       return;
     }
 
-    const fakeEmail = phoneToEmail(phone);
-
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email: fakeEmail,
-      password: pin + "LM",
-      options: { data: { full_name: fullName, phone: normalizePhone(phone) } },
+    // Use admin API to create user without triggering email confirmation
+    const res = await fetch("/api/auth/register-phone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ full_name: fullName, phone, pin, role: "user" }),
     });
 
-    if (signUpError) {
-      setError(
-        signUpError.message === "User already registered"
-          ? "Ce numéro de téléphone est déjà enregistré. Veuillez vous connecter."
-          : `Erreur : ${signUpError.message}`
-      );
+    if (!res.ok) {
+      const d = await res.json();
+      setError(d.error ?? "Erreur lors de la création du compte.");
       setLoading(false);
       return;
     }
 
-    if (data.session) {
-      router.push("/dashboard");
-      router.refresh();
+    // Account created — now sign in automatically
+    const fakeEmail = phoneToEmail(phone);
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: fakeEmail,
+      password: pin + "LM",
+    });
+
+    if (signInError) {
+      setError("Compte créé mais connexion impossible. Essayez de vous connecter manuellement.");
+      setLoading(false);
       return;
     }
 
-    // Phone accounts are usually auto-confirmed (no email verification)
     router.push("/dashboard");
     router.refresh();
   };

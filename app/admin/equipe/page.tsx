@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { UserCog } from "lucide-react";
 import AssignRoleButton from "./AssignRoleButton";
 import AddMemberButton from "./AddMemberButton";
+import MemberActions from "./MemberActions";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ const ROLE_LABELS: Record<string, { label: string; color: string }> = {
 export default async function AdminEquipePage() {
   const { data: team } = await admin
     .from("profiles")
-    .select("id, full_name, phone, role, created_at")
+    .select("id, full_name, phone, role, created_at, is_suspended")
     .in("role", ["super_admin", "admin", "commercial"])
     .order("role", { ascending: true })
     .order("created_at", { ascending: true });
@@ -52,6 +53,7 @@ export default async function AdminEquipePage() {
                 <th className="text-left px-6 py-3 font-semibold text-gray-500">Téléphone</th>
                 <th className="text-left px-6 py-3 font-semibold text-gray-500">Rôle</th>
                 <th className="text-left px-6 py-3 font-semibold text-gray-500">Depuis</th>
+                <th className="text-left px-6 py-3 font-semibold text-gray-500">Statut</th>
                 <th className="text-right px-6 py-3 font-semibold text-gray-500">Actions</th>
               </tr>
             </thead>
@@ -79,8 +81,22 @@ export default async function AdminEquipePage() {
                     <td className="px-6 py-4 text-gray-400 text-xs">
                       {new Date(m.created_at).toLocaleDateString("fr-FR")}
                     </td>
+                    <td className="px-6 py-4">
+                      {m.is_suspended ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-600">
+                          Suspendu
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-600">
+                          Actif
+                        </span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-right">
-                      <AssignRoleButton memberId={m.id} currentRole={m.role} />
+                      <div className="flex items-center gap-2 justify-end">
+                        <AssignRoleButton memberId={m.id} currentRole={m.role} />
+                        <MemberActions memberId={m.id} isSuspended={!!m.is_suspended} />
+                      </div>
                     </td>
                   </tr>
                 );
