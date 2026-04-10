@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
-import { Search, UserCircle, Phone, Mail } from "lucide-react";
+import { Search, UserCircle, Phone } from "lucide-react";
+import AddClientButton from "./AddClientButton";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +50,7 @@ export default async function AdminClientsPage({
           <h1 className="text-2xl font-black text-gray-900">Clients</h1>
           <p className="text-gray-500 text-sm mt-0.5">{filtered.length} client(s) enregistré(s)</p>
         </div>
+        <AddClientButton commercials={commercials ?? []} />
       </div>
 
       {/* Search */}

@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
-import { UserCog, Shield, Star, User } from "lucide-react";
+import { UserCog } from "lucide-react";
 import AssignRoleButton from "./AssignRoleButton";
+import AddMemberButton from "./AddMemberButton";
 
 export const dynamic = "force-dynamic";
 
@@ -28,9 +29,12 @@ export default async function AdminEquipePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-black text-gray-900">Équipe</h1>
-        <p className="text-gray-500 text-sm mt-0.5">{members.length} membre(s) de l&apos;équipe</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-black text-gray-900">Équipe</h1>
+          <p className="text-gray-500 text-sm mt-0.5">{members.length} membre(s) de l&apos;équipe</p>
+        </div>
+        <AddMemberButton />
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
@@ -86,15 +90,6 @@ export default async function AdminEquipePage() {
         )}
       </div>
 
-      {/* Promote a user */}
-      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
-        <p className="text-sm text-amber-800 font-semibold mb-1">Promouvoir un client</p>
-        <p className="text-xs text-amber-700">
-          Pour ajouter un commercial ou admin, trouvez l&apos;utilisateur dans{" "}
-          <a href="/admin/clients" className="underline font-medium">la page Clients</a>{" "}
-          et modifiez son rôle via l&apos;API ou directement dans Supabase.
-        </p>
-      </div>
     </div>
   );
 }

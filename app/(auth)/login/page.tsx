@@ -64,7 +64,7 @@ function LoginForm() {
     const fakeEmail = phoneToEmail(phone);
     const { error } = await supabase.auth.signInWithPassword({
       email: fakeEmail,
-      password: pin,
+      password: pin + "LM",
     });
 
     if (error) {

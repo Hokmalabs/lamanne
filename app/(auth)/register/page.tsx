@@ -100,7 +100,7 @@ export default function RegisterPage() {
 
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: fakeEmail,
-      password: pin,
+      password: pin + "LM",
       options: { data: { full_name: fullName, phone: normalizePhone(phone) } },
     });
 
