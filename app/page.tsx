@@ -10,6 +10,9 @@ import {
   Shield,
   Zap,
   Users,
+  Quote,
+  ChevronDown,
+  MessageCircle,
 } from "lucide-react";
 
 export default function LandingPage() {
@@ -225,6 +228,108 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Témoignages */}
+      <section className="py-20 bg-lamanne-light/40">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center mb-14">
+            <p className="text-lamanne-accent font-semibold text-sm uppercase tracking-widest mb-3">
+              Ils nous font confiance
+            </p>
+            <h2 className="text-3xl md:text-4xl font-black text-lamanne-primary">
+              Ce que disent nos clients
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                name: "Adjoua Koffi",
+                role: "Commerçante, Adjamé",
+                text: "Grâce à LAMANNE, j'ai pu m'offrir un téléphone Samsung sans vider ma caisse. Je cotise chaque semaine selon mes revenus. C'est parfait pour nous les vendeuses !",
+                rating: 5,
+              },
+              {
+                name: "Kouamé Brou",
+                role: "Étudiant, Cocody",
+                text: "J'avais peur au début mais l'application est très simple. Mon commercial m'a tout expliqué et maintenant je suis autonome. Mon laptop est presque payé !",
+                rating: 5,
+              },
+              {
+                name: "Mariam Coulibaly",
+                role: "Fonctionnaire, Yopougon",
+                text: "J'ai commandé une télé pour ma maman. Les versements s'adaptent à mon salaire. Aucun intérêt, aucune surprise. Je recommande à toute ma famille.",
+                rating: 5,
+              },
+            ].map((t) => (
+              <div key={t.name} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <Quote className="h-8 w-8 text-lamanne-accent/30 mb-3" />
+                <p className="text-gray-600 text-sm leading-relaxed mb-5">{t.text}</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-gray-900 text-sm">{t.name}</p>
+                    <p className="text-xs text-gray-400">{t.role}</p>
+                  </div>
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: t.rating }).map((_, i) => (
+                      <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="py-20 bg-white">
+        <div className="max-w-3xl mx-auto px-4">
+          <div className="text-center mb-14">
+            <p className="text-lamanne-accent font-semibold text-sm uppercase tracking-widest mb-3">
+              Questions fréquentes
+            </p>
+            <h2 className="text-3xl md:text-4xl font-black text-lamanne-primary">
+              On répond à vos questions
+            </h2>
+          </div>
+
+          <div className="space-y-3">
+            {[
+              {
+                q: "Dois-je payer des intérêts ou des frais cachés ?",
+                a: "Non. Vous payez exactement le prix affiché sur l'article, sans aucun intérêt ni frais supplémentaire. LAMANNE ne fait pas de crédit — c'est une cotisation pure.",
+              },
+              {
+                q: "Quand puis-je retirer mon article ?",
+                a: "Dès que votre cotisation est entièrement payée (100%), vous pouvez demander le retrait. Vous recevrez une notification et pourrez venir en boutique avec votre code.",
+              },
+              {
+                q: "Que se passe-t-il si je n'ai pas d'adresse email ?",
+                a: "Pas de problème ! Vous pouvez vous inscrire uniquement avec votre numéro de téléphone et un code PIN à 4 chiffres. Notre application est conçue pour être accessible à tous.",
+              },
+              {
+                q: "Puis-je faire plusieurs cotisations en même temps ?",
+                a: "Oui, vous pouvez avoir plusieurs cotisations actives simultanément pour différents articles.",
+              },
+              {
+                q: "Que se passe-t-il si je veux annuler ma cotisation ?",
+                a: "Vous pouvez annuler à tout moment. Les sommes versées vous seront remboursées sous déduction de 5% de frais de gestion, dans un délai de 7 à 14 jours.",
+              },
+            ].map((faq, i) => (
+              <details key={i} className="group bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden">
+                <summary className="flex items-center justify-between px-6 py-4 cursor-pointer font-semibold text-gray-900 text-sm list-none">
+                  {faq.q}
+                  <ChevronDown className="h-4 w-4 text-gray-400 transition-transform group-open:rotate-180 flex-shrink-0 ml-3" />
+                </summary>
+                <div className="px-6 pb-4 text-sm text-gray-600 leading-relaxed border-t border-gray-100 pt-3">
+                  {faq.a}
+                </div>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA final */}
       <section className="py-20 bg-lamanne-primary">
         <div className="max-w-3xl mx-auto px-4 text-center">
@@ -260,16 +365,27 @@ export default function LandingPage() {
               © {new Date().getFullYear()} LAMANNE — Tous droits réservés. Côte d&apos;Ivoire.
             </p>
             <div className="flex gap-4 text-sm">
-              <Link href="/mentions-legales" className="hover:text-white transition-colors">
-                Mentions légales
+              <Link href="/cgu" className="hover:text-white transition-colors">
+                CGU
               </Link>
-              <Link href="/confidentialite" className="hover:text-white transition-colors">
+              <Link href="/cgu" className="hover:text-white transition-colors">
                 Confidentialité
               </Link>
             </div>
           </div>
         </div>
       </footer>
+
+      {/* WhatsApp floating button */}
+      <a
+        href="https://wa.me/2250700000000"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-[#25D366] text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-[#20b859] transition-colors"
+        aria-label="Nous contacter sur WhatsApp"
+      >
+        <MessageCircle className="h-7 w-7 fill-white" />
+      </a>
     </div>
   );
 }

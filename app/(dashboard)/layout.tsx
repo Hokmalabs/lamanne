@@ -1,5 +1,5 @@
 import { Sidebar, BottomNav } from "@/components/navbar";
-import { Bell } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 export default async function DashboardLayout({
@@ -37,18 +37,14 @@ export default async function DashboardLayout({
             </div>
             <span className="text-lamanne-primary font-black text-lg">LAMANNE</span>
           </div>
-          <button className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors">
-            <Bell className="h-5 w-5 text-gray-600" />
-          </button>
+          <NotificationBell />
         </header>
 
         {/* Top bar desktop */}
         <div className="hidden md:flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100">
           <div />
           <div className="flex items-center gap-3">
-            <button className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors">
-              <Bell className="h-5 w-5 text-gray-600" />
-            </button>
+            <NotificationBell />
           </div>
         </div>
 
