@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   const { full_name, phone, email, role, pin } = parsed.data;
   const cleanPhone = phone.replace(/\s/g, "").replace(/^00/, "+");
   const digits = cleanPhone.replace(/\D/g, "");
-  const resolvedEmail = email || `phone_${digits}@lamanne.ci`;
+  const resolvedEmail = email || `phone_${digits}@lamanne.app`;
 
   const { data: newUser, error: createError } = await admin.auth.admin.createUser({
     email: resolvedEmail,

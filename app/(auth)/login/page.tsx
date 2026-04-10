@@ -16,7 +16,7 @@ function normalizePhone(phone: string): string {
 
 function phoneToEmail(phone: string): string {
   const digits = normalizePhone(phone).replace(/\D/g, "");
-  return `phone_${digits}@lamanne.ci`;
+  return `phone_${digits}@lamanne.app`;
 }
 
 function LoginForm() {
@@ -36,17 +36,30 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const getRedirect = async (userId: string): Promise<string> => {
+    if (redirectTo !== "/dashboard") return redirectTo;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .single();
+    if (profile?.role === "super_admin" || profile?.role === "admin") return "/admin";
+    if (profile?.role === "commercial") return "/commercial";
+    return "/dashboard";
+  };
+
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setError("Email ou mot de passe incorrect.");
       setLoading(false);
       return;
     }
-    router.push(redirectTo);
+    const dest = await getRedirect(data.user.id);
+    router.push(dest);
     router.refresh();
   };
 
@@ -72,7 +85,9 @@ function LoginForm() {
       setLoading(false);
       return;
     }
-    router.push(redirectTo);
+    const { data: { user } } = await supabase.auth.getUser();
+    const dest = user ? await getRedirect(user.id) : "/dashboard";
+    router.push(dest);
     router.refresh();
   };
 

@@ -16,19 +16,22 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-const navItems = [
+const baseNavItems = [
   { href: "/admin",                label: "Vue générale",     icon: LayoutDashboard, exact: true },
   { href: "/admin/produits",       label: "Produits",         icon: ShoppingBag },
   { href: "/admin/cotisations",    label: "Cotisations",      icon: ClipboardList },
   { href: "/admin/remboursements", label: "Remboursements",   icon: RefreshCw },
   { href: "/admin/retraits",       label: "Retraits",         icon: PackageCheck },
   { href: "/admin/clients",        label: "Clients",          icon: Users },
-  { href: "/admin/equipe",         label: "Équipe",           icon: UserCog },
 ];
 
-export default function AdminSidebar() {
+const superAdminItem = { href: "/admin/equipe", label: "Équipe", icon: UserCog, exact: false };
+
+export default function AdminSidebar({ isSuperAdmin }: { isSuperAdmin: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
+
+  const navItems = isSuperAdmin ? [...baseNavItems, superAdminItem] : baseNavItems;
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -45,7 +48,7 @@ export default function AdminSidebar() {
           </div>
           <div>
             <p className="text-white font-black text-sm">LAMANNE Admin</p>
-            <p className="text-white/40 text-xs">Back-office</p>
+            <p className="text-white/40 text-xs">{isSuperAdmin ? "Super Admin" : "Back-office"}</p>
           </div>
         </div>
       </div>

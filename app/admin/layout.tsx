@@ -26,7 +26,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminSidebar />
+      <AdminSidebar isSuperAdmin={profile.role === "super_admin"} />
       <div className="md:ml-60">
         <header className="bg-white border-b border-gray-100 px-6 h-14 flex items-center">
           <h1 className="text-sm font-bold text-gray-500 uppercase tracking-wide">

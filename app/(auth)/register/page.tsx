@@ -16,7 +16,7 @@ function normalizePhone(phone: string): string {
 
 function phoneToEmail(phone: string): string {
   const digits = normalizePhone(phone).replace(/\D/g, "");
-  return `phone_${digits}@lamanne.ci`;
+  return `phone_${digits}@lamanne.app`;
 }
 
 export default function RegisterPage() {

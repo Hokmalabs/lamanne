@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   const { full_name, phone, email, pin, assigned_commercial } = parsed.data;
   const cleanPhone = phone.replace(/\s/g, "").replace(/^00/, "+");
   const digits = cleanPhone.replace(/\D/g, "");
-  const resolvedEmail = email || `phone_${digits}@lamanne.ci`;
+  const resolvedEmail = email || `phone_${digits}@lamanne.app`;
 
   // Commercials auto-assign themselves
   const commercialId =

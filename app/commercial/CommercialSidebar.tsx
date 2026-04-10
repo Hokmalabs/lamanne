@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   Users,
-  PlusCircle,
   Wallet,
   LogOut,
   Briefcase,
@@ -14,10 +13,9 @@ import {
 import { supabase } from "@/lib/supabase";
 
 const navItems = [
-  { href: "/commercial",                   label: "Vue générale",        icon: LayoutDashboard, exact: true },
-  { href: "/commercial/clients",           label: "Mes clients",         icon: Users },
-  { href: "/commercial/nouvelle-cotisation", label: "Nouvelle cotisation", icon: PlusCircle },
-  { href: "/commercial/encaissements",     label: "Encaissements",       icon: Wallet },
+  { href: "/commercial",               label: "Tableau de bord", icon: LayoutDashboard, exact: true },
+  { href: "/commercial/clients",       label: "Mes clients",     icon: Users },
+  { href: "/commercial/encaissements", label: "Encaissements",   icon: Wallet },
 ];
 
 export default function CommercialSidebar({ userName }: { userName: string }) {
