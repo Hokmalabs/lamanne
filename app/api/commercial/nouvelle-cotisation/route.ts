@@ -82,7 +82,9 @@ export async function POST(req: NextRequest) {
     .insert({
       user_id: client_id,
       product_id,
+      total_price: product.price,
       amount_paid: first_payment,
+      amount_remaining: Math.max(0, product.price - first_payment),
       nb_tranches: 1,
       tranche_amount: first_payment,
       status: isFull ? "completed" : "active",

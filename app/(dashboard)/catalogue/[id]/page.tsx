@@ -215,6 +215,11 @@ export default function ProductDetailPage() {
               Date limite : {formatDate(deadline.toISOString())}
             </p>
           )}
+          {(product as any).delivery_days && (
+            <p className="text-blue-600 mt-1">
+              Livraison estimée : {(product as any).delivery_days} jour{(product as any).delivery_days > 1 ? "s" : ""} après la fin de cotisation
+            </p>
+          )}
         </div>
       </div>
 

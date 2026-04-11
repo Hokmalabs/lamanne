@@ -7,13 +7,21 @@ import { formatCFA, formatDate, calculateProgress } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/progress-bar";
 import { cn } from "@/lib/utils";
-import { ShoppingBag, QrCode, Package, Clock } from "lucide-react";
+import { ShoppingBag, QrCode, Package, Clock, Banknote } from "lucide-react";
 
 type CotisationWithProduct = Cotisation & {
   product: Pick<Product, "name" | "images" | "is_lot">;
 };
 
-type Tab = "active" | "completed" | "cancelled";
+type Payment = {
+  id: string;
+  amount: number;
+  paid_at: string;
+  cotisation_id: string;
+  productName: string;
+};
+
+type Tab = "active" | "completed" | "cancelled" | "payments";
 
 const refundLabels: Record<string, { label: string; color: string }> = {
   none:      { label: "—",           color: "text-gray-400" },
@@ -36,7 +44,6 @@ function CotisationRow({ cotisation }: { cotisation: CotisationWithProduct }) {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
-      {/* En-tête */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-lamanne-light rounded-xl flex items-center justify-center flex-shrink-0">
@@ -66,10 +73,8 @@ function CotisationRow({ cotisation }: { cotisation: CotisationWithProduct }) {
         {cotisation.status === "cancelled" && <Badge variant="danger">Annulé</Badge>}
       </div>
 
-      {/* Progression */}
       <ProgressBar value={progress} showLabel />
 
-      {/* Montants */}
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="bg-gray-50 rounded-xl py-2 px-1">
           <p className="text-xs text-gray-400">Total</p>
@@ -87,7 +92,6 @@ function CotisationRow({ cotisation }: { cotisation: CotisationWithProduct }) {
         </div>
       </div>
 
-      {/* Code de retrait (completed) */}
       {cotisation.status === "completed" && cotisation.withdrawal_code && (
         <div className="bg-lamanne-success/10 rounded-xl p-3 flex items-center gap-3">
           <QrCode className="h-5 w-5 text-lamanne-success flex-shrink-0" />
@@ -109,7 +113,6 @@ function CotisationRow({ cotisation }: { cotisation: CotisationWithProduct }) {
         </div>
       )}
 
-      {/* Infos annulation (cancelled) */}
       {cotisation.status === "cancelled" && (
         <div className="bg-orange-50 rounded-xl p-3 space-y-1">
           <div className="flex justify-between text-xs">
@@ -145,11 +148,12 @@ function CotisationRow({ cotisation }: { cotisation: CotisationWithProduct }) {
 
 export default function HistoriquePage() {
   const [tab, setTab] = useState<Tab>("active");
-  const [data, setData] = useState<Record<Tab, CotisationWithProduct[]>>({
-    active: [],
-    completed: [],
-    cancelled: [],
-  });
+  const [cotisations, setCotisations] = useState<{
+    active: CotisationWithProduct[];
+    completed: CotisationWithProduct[];
+    cancelled: CotisationWithProduct[];
+  }>({ active: [], completed: [], cancelled: [] });
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -157,31 +161,49 @@ export default function HistoriquePage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: rows } = await supabase
-        .from("cotisations")
-        .select("*, product:products(name, images, is_lot)")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+      const [{ data: rows }, { data: paymentRows }] = await Promise.all([
+        supabase
+          .from("cotisations")
+          .select("*, product:products(name, images, is_lot)")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("payments")
+          .select("id, amount, paid_at, cotisation_id, cotisations(product_id, products(name))")
+          .order("paid_at", { ascending: false }),
+      ]);
 
       if (rows) {
-        setData({
+        setCotisations({
           active:    rows.filter((r) => r.status === "active") as CotisationWithProduct[],
           completed: rows.filter((r) => r.status === "completed") as CotisationWithProduct[],
           cancelled: rows.filter((r) => r.status === "cancelled") as CotisationWithProduct[],
         });
       }
+
+      if (paymentRows) {
+        setPayments(
+          paymentRows.map((p: any) => ({
+            id: p.id,
+            amount: p.amount,
+            paid_at: p.paid_at,
+            cotisation_id: p.cotisation_id,
+            productName: p.cotisations?.products?.name ?? "—",
+          }))
+        );
+      }
+
       setLoading(false);
     }
     fetchAll();
   }, []);
 
   const tabs: { key: Tab; label: string }[] = [
-    { key: "active",    label: `En cours (${data.active.length})` },
-    { key: "completed", label: `Terminées (${data.completed.length})` },
-    { key: "cancelled", label: `Annulées (${data.cancelled.length})` },
+    { key: "active",    label: `En cours (${cotisations.active.length})` },
+    { key: "completed", label: `Terminées (${cotisations.completed.length})` },
+    { key: "cancelled", label: `Annulées (${cotisations.cancelled.length})` },
+    { key: "payments",  label: `Paiements (${payments.length})` },
   ];
-
-  const current = data[tab];
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
@@ -191,13 +213,13 @@ export default function HistoriquePage() {
       </div>
 
       {/* Onglets */}
-      <div className="flex bg-lamanne-light rounded-xl p-1 gap-1">
+      <div className="grid grid-cols-4 bg-lamanne-light rounded-xl p-1 gap-1">
         {tabs.map(({ key, label }) => (
           <button
             key={key}
             onClick={() => setTab(key)}
             className={cn(
-              "flex-1 py-2 px-2 rounded-lg text-xs font-semibold transition-all",
+              "py-2 px-1 rounded-lg text-xs font-semibold transition-all",
               tab === key
                 ? "bg-lamanne-primary text-white shadow-sm"
                 : "text-lamanne-primary hover:bg-white/50"
@@ -217,38 +239,65 @@ export default function HistoriquePage() {
         </div>
       )}
 
-      {/* Contenu */}
-      {!loading && current.length === 0 && (
-        <EmptyState
-          label={
-            tab === "active"
-              ? "Aucune cotisation en cours"
-              : tab === "completed"
-              ? "Aucune cotisation terminée"
-              : "Aucune cotisation annulée"
-          }
-        />
+      {/* Cotisation tabs */}
+      {!loading && tab !== "payments" && (
+        <>
+          {cotisations[tab].length === 0 && (
+            <EmptyState
+              label={
+                tab === "active"
+                  ? "Aucune cotisation en cours"
+                  : tab === "completed"
+                  ? "Aucune cotisation terminée"
+                  : "Aucune cotisation annulée"
+              }
+            />
+          )}
+          {cotisations[tab].length > 0 && (
+            <div className="space-y-4">
+              {cotisations[tab].map((c) => (
+                <CotisationRow key={c.id} cotisation={c} />
+              ))}
+            </div>
+          )}
+          {tab === "cancelled" && cotisations.cancelled.length > 0 && (
+            <div className="bg-gray-50 rounded-xl p-4 text-xs text-gray-500 space-y-1">
+              <p className="font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5" />
+                Statuts des remboursements
+              </p>
+              <p><span className="text-yellow-600 font-semibold">En attente</span> — Votre demande est en cours de traitement</p>
+              <p><span className="text-green-600 font-semibold">Approuvé</span> — Le remboursement a été validé</p>
+              <p><span className="text-red-600 font-semibold">Rejeté</span> — La demande a été refusée</p>
+            </div>
+          )}
+        </>
       )}
 
-      {!loading && current.length > 0 && (
-        <div className="space-y-4">
-          {current.map((c) => (
-            <CotisationRow key={c.id} cotisation={c} />
-          ))}
-        </div>
-      )}
-
-      {/* Légende remboursements */}
-      {!loading && tab === "cancelled" && data.cancelled.length > 0 && (
-        <div className="bg-gray-50 rounded-xl p-4 text-xs text-gray-500 space-y-1">
-          <p className="font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
-            <Clock className="h-3.5 w-3.5" />
-            Statuts des remboursements
-          </p>
-          <p><span className="text-yellow-600 font-semibold">En attente</span> — Votre demande est en cours de traitement</p>
-          <p><span className="text-green-600 font-semibold">Approuvé</span> — Le remboursement a été validé</p>
-          <p><span className="text-red-600 font-semibold">Rejeté</span> — La demande a été refusée</p>
-        </div>
+      {/* Payments tab */}
+      {!loading && tab === "payments" && (
+        <>
+          {payments.length === 0 ? (
+            <EmptyState label="Aucun paiement enregistré" />
+          ) : (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50">
+              {payments.map((p) => (
+                <div key={p.id} className="px-5 py-4 flex items-center gap-4">
+                  <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Banknote className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{p.productName}</p>
+                    <p className="text-xs text-gray-400">{formatDate(p.paid_at)}</p>
+                  </div>
+                  <p className="text-sm font-bold text-green-600 flex-shrink-0">
+                    +{formatCFA(p.amount)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

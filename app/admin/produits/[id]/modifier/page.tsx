@@ -29,6 +29,7 @@ export default function ModifierProduitPage() {
     lot_details: "",
     min_tranches: 1,
     max_tranches: 6,
+    delivery_days: 1,
     is_active: true,
   });
 
@@ -52,6 +53,7 @@ export default function ModifierProduitPage() {
           lot_details: p.lot_details ?? "",
           min_tranches: p.min_tranches ?? 1,
           max_tranches: p.max_tranches ?? 6,
+          delivery_days: (p as any).delivery_days ?? 1,
           is_active: p.is_active,
         });
       }
@@ -77,6 +79,7 @@ export default function ModifierProduitPage() {
         lot_details: form.is_lot ? form.lot_details : null,
         min_tranches: form.min_tranches,
         max_tranches: form.max_tranches,
+        delivery_days: form.delivery_days,
         is_active: form.is_active,
       })
       .eq("id", id);
@@ -282,6 +285,32 @@ export default function ModifierProduitPage() {
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+
+        {/* Délai de livraison */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <div>
+            <h2 className="font-bold text-gray-900">Délai de livraison</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Jours après la fin de cotisation</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, delivery_days: Math.max(1, form.delivery_days - 1) })}
+              className="w-10 h-10 rounded-xl border-2 border-gray-200 flex items-center justify-center text-gray-600 text-xl font-bold hover:border-lamanne-primary transition-colors"
+            >
+              −
+            </button>
+            <span className="text-2xl font-black text-gray-900 w-12 text-center">{form.delivery_days}</span>
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, delivery_days: Math.min(30, form.delivery_days + 1) })}
+              className="w-10 h-10 rounded-xl border-2 border-gray-200 flex items-center justify-center text-gray-600 text-xl font-bold hover:border-lamanne-primary transition-colors"
+            >
+              +
+            </button>
+            <span className="text-sm text-gray-500">jour{form.delivery_days > 1 ? "s" : ""}</span>
           </div>
         </div>
 
