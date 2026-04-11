@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
@@ -39,18 +40,19 @@ export async function POST(req: NextRequest) {
 
   const { member_id, action } = parsed.data;
 
-  // Prevent self-action
   if (member_id === user.id) {
     return NextResponse.json({ error: "Impossible d'agir sur votre propre compte" }, { status: 400 });
   }
 
   if (action === "delete") {
-    const { error } = await admin.auth.admin.deleteUser(member_id);
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    // Delete from auth (profile deleted via cascade or explicit delete)
+    const { error: authErr } = await admin.auth.admin.deleteUser(member_id);
+    if (authErr) {
+      return NextResponse.json({ error: authErr.message }, { status: 500 });
     }
-    // Profile is deleted via CASCADE or RLS trigger
+    // Explicit profile delete in case cascade isn't set
     await admin.from("profiles").delete().eq("id", member_id);
+    revalidatePath("/admin/equipe");
     return NextResponse.json({ ok: true });
   }
 
@@ -63,5 +65,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  revalidatePath("/admin/equipe");
   return NextResponse.json({ ok: true });
 }

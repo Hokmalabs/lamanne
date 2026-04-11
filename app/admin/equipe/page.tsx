@@ -5,6 +5,7 @@ import AddMemberButton from "./AddMemberButton";
 import MemberActions from "./MemberActions";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const admin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,7 +25,7 @@ export default async function AdminEquipePage() {
     .select("id, full_name, phone, role, created_at, is_suspended")
     .in("role", ["super_admin", "admin", "commercial"])
     .order("role", { ascending: true })
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false });
 
   const members = team ?? [];
 
