@@ -296,24 +296,24 @@ export default function LandingPage() {
           <div className="space-y-3">
             {[
               {
-                q: "Dois-je payer des intérêts ou des frais cachés ?",
-                a: "Non. Vous payez exactement le prix affiché sur l'article, sans aucun intérêt ni frais supplémentaire. LAMANNE ne fait pas de crédit — c'est une cotisation pure.",
+                q: "Comment fonctionne LAMANNE ?",
+                a: "LAMANNE est une plateforme de cotisation progressive. Vous choisissez un article dans notre catalogue, puis vous versez des montants à votre rythme (minimum 1 000 FCFA par versement). Dès que vous atteignez 100% du prix, vous recevez un code de retrait pour venir chercher votre article en boutique.",
               },
               {
-                q: "Quand puis-je retirer mon article ?",
-                a: "Dès que votre cotisation est entièrement payée (100%), vous pouvez demander le retrait. Vous recevrez une notification et pourrez venir en boutique avec votre code.",
+                q: "Quels sont les délais de cotisation ?",
+                a: "Chaque produit a un délai maximum indiqué sur sa fiche (par exemple 6 ou 12 mois). Vous pouvez cotiser à votre rythme, en plusieurs versements libres, tant que vous complétez avant la date limite. Il n'y a pas de montant mensuel fixe imposé.",
               },
               {
-                q: "Que se passe-t-il si je n'ai pas d'adresse email ?",
-                a: "Pas de problème ! Vous pouvez vous inscrire uniquement avec votre numéro de téléphone et un code PIN à 4 chiffres. Notre application est conçue pour être accessible à tous.",
+                q: "Puis-je annuler ma cotisation ?",
+                a: "Oui, vous pouvez annuler à tout moment depuis votre espace cotisations. Les sommes déjà versées vous sont remboursées à 90% (10% de frais de gestion déduits), dans un délai de 7 à 14 jours ouvrés.",
               },
               {
-                q: "Puis-je faire plusieurs cotisations en même temps ?",
-                a: "Oui, vous pouvez avoir plusieurs cotisations actives simultanément pour différents articles.",
+                q: "Comment récupérer mon article ?",
+                a: "Une fois votre cotisation à 100%, vous recevez automatiquement un code de retrait à 6 chiffres dans votre application. Rendez-vous en boutique partenaire LAMANNE avec ce code et une pièce d'identité pour retirer votre article.",
               },
               {
-                q: "Que se passe-t-il si je veux annuler ma cotisation ?",
-                a: "Vous pouvez annuler à tout moment. Les sommes versées vous seront remboursées sous déduction de 5% de frais de gestion, dans un délai de 7 à 14 jours.",
+                q: "Quels moyens de paiement sont acceptés ?",
+                a: "Actuellement, les versements sont enregistrés par votre commercial LAMANNE lors de vos rencontres. Les paiements par Mobile Money (Orange Money, Wave, MTN MoMo) seront disponibles prochainement directement dans l'application.",
               },
             ].map((faq, i) => (
               <details key={i} className="group bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden">

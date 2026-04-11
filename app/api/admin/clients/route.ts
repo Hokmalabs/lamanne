@@ -11,8 +11,6 @@ const admin = createClient(
 const schema = z.object({
   full_name: z.string().min(2),
   phone: z.string().min(8),
-  email: z.string().email().optional().or(z.literal("")),
-  pin: z.string().length(4).regex(/^\d{4}$/),
   assigned_commercial: z.string().uuid().optional().or(z.literal("")),
 });
 
@@ -30,27 +28,26 @@ export async function POST(req: NextRequest) {
     .eq("id", user.id)
     .single();
 
-  if (!callerProfile || !["admin", "super_admin", "commercial"].includes(callerProfile.role)) {
+  if (!callerProfile || !["admin", "super_admin"].includes(callerProfile.role)) {
     return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
   }
 
   const body = await req.json();
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Données invalides", details: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: "Données invalides" }, { status: 400 });
   }
 
-  const { full_name, phone, email, pin, assigned_commercial } = parsed.data;
+  const { full_name, phone, assigned_commercial } = parsed.data;
   const cleanPhone = phone.replace(/\s/g, "").replace(/^00/, "+");
   const digits = cleanPhone.replace(/\D/g, "");
-  const resolvedEmail = email || `phone_${digits}@lamanne.app`;
+  const email = `phone_${digits}@lamanne.app`;
 
-  // Commercials auto-assign themselves
-  const commercialId =
-    assigned_commercial || (callerProfile.role === "commercial" ? user.id : null);
+  // Auto-generate a 4-digit PIN — client doesn't need it to start
+  const pin = String(Math.floor(1000 + Math.random() * 9000));
 
   const { data: newUser, error: createError } = await admin.auth.admin.createUser({
-    email: resolvedEmail,
+    email,
     password: pin + "LM",
     email_confirm: true,
     user_metadata: { full_name, phone: cleanPhone },
@@ -67,7 +64,7 @@ export async function POST(req: NextRequest) {
       phone: cleanPhone,
       role: "user",
       created_by: user.id,
-      ...(commercialId ? { assigned_commercial: commercialId } : {}),
+      ...(assigned_commercial ? { assigned_commercial } : {}),
     });
   }
 

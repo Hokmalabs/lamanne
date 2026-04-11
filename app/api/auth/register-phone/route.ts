@@ -11,7 +11,7 @@ const admin = createClient(
 const schema = z.object({
   full_name: z.string().min(2),
   phone: z.string().min(6),
-  pin: z.string().length(4).regex(/^\d{4}$/),
+  pin: z.string().length(4).regex(/^\d{4}$/).optional(), // auto-generated if omitted
   role: z.enum(["user", "commercial", "admin"]).default("user"),
   assigned_commercial: z.string().uuid().optional(),
 });
@@ -23,7 +23,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Données invalides" }, { status: 400 });
   }
 
-  const { full_name, phone, pin, role, assigned_commercial } = parsed.data;
+  const { full_name, phone, role, assigned_commercial } = parsed.data;
+  // Generate a random 4-digit PIN if none provided (commercial/admin creating a client)
+  const pin = parsed.data.pin ?? String(Math.floor(1000 + Math.random() * 9000));
+
   const cleanPhone = phone.replace(/\s/g, "").replace(/^00/, "+");
   const digits = cleanPhone.replace(/\D/g, "");
   const email = `phone_${digits}@lamanne.app`;
@@ -37,7 +40,7 @@ export async function POST(req: NextRequest) {
 
   if (existing) {
     return NextResponse.json(
-      { error: "Ce numéro est déjà enregistré. Veuillez vous connecter." },
+      { error: "Ce numéro est déjà enregistré." },
       { status: 409 }
     );
   }
@@ -50,10 +53,9 @@ export async function POST(req: NextRequest) {
   });
 
   if (createError) {
-    // User already exists in auth but not in profiles
     if (createError.message.includes("already been registered")) {
       return NextResponse.json(
-        { error: "Ce numéro est déjà enregistré. Veuillez vous connecter." },
+        { error: "Ce numéro est déjà enregistré." },
         { status: 409 }
       );
     }
