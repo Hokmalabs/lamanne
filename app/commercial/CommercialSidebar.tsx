@@ -21,7 +21,7 @@ const navItems = [
   { href: "/commercial/mes-clients",   label: "Mes clients",    icon: Users },
   { href: "/commercial/encaissements", label: "Encaissements",  icon: Wallet },
   { href: "/commercial/stats",         label: "Stats",          icon: BarChart2 },
-  { href: "/profil",                   label: "Profil",         icon: User },
+  { href: "/commercial/profil",        label: "Profil",         icon: User },
 ];
 
 export function CommercialSidebar({ userName }: { userName: string }) {
@@ -70,7 +70,7 @@ export function CommercialSidebar({ userName }: { userName: string }) {
       </nav>
 
       <div className="p-4 border-t border-white/10 space-y-2">
-        <Link href="/profil" className="flex items-center gap-3 hover:opacity-80 transition-opacity mb-2">
+        <Link href="/commercial/profil" className="flex items-center gap-3 hover:opacity-80 transition-opacity mb-2">
           <Avatar className="h-9 w-9">
             <AvatarFallback className="text-xs bg-[#378ADD] text-white font-bold">{initials}</AvatarFallback>
           </Avatar>
