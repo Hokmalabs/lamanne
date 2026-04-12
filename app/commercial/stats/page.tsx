@@ -16,7 +16,16 @@ export default async function CommercialStatsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  // Clients (role=user)
+  // 1. Commercial profile (for monthly_target)
+  const { data: commercialProfile } = await admin
+    .from("profiles")
+    .select("monthly_target, full_name")
+    .eq("id", user.id)
+    .single();
+
+  const objectif = (commercialProfile as any)?.monthly_target ?? 0;
+
+  // 2. Clients (role=user)
   const { data: clients } = await admin
     .from("profiles")
     .select("id, full_name")
@@ -25,86 +34,120 @@ export default async function CommercialStatsPage() {
 
   const clientIds = (clients ?? []).map((c) => c.id);
 
-  // Active cotisations count
-  let activeCotisations = 0;
-  let totalCollected = 0;
-  let completedCotisations = 0;
-  let dailyData: { date: string; total: number }[] = [];
-  let topClients: { name: string; total: number }[] = [];
+  // === Defaults ===
+  let totalMois = 0;
+  let nbVersementsMois = 0;
+  let clientsActifs = 0;
+  let tauxCompletion = 0;
+  let chartData: { jour: string; montant: number }[] = [];
+  let top3: { name: string; totalMois: number; nbVersements: number }[] = [];
 
   if (clientIds.length > 0) {
-    const { data: cots } = await admin
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const startOfMonthISO = startOfMonth.toISOString();
+
+    // 3. Monthly payments total + count
+    const { data: monthPayments } = await admin
+      .from("payments")
+      .select("amount")
+      .in("user_id", clientIds)
+      .eq("status", "success")
+      .gte("created_at", startOfMonthISO);
+
+    totalMois = (monthPayments ?? []).reduce((s, p) => s + (p.amount ?? 0), 0);
+    nbVersementsMois = monthPayments?.length ?? 0;
+
+    // 4. Clients actifs (at least one active cotisation)
+    const { data: cotisActives } = await admin
       .from("cotisations")
-      .select("id, status, user_id")
+      .select("user_id")
+      .in("user_id", clientIds)
+      .eq("status", "active");
+
+    clientsActifs = new Set((cotisActives ?? []).map((c) => c.user_id)).size;
+
+    // 5. Taux de complétion (toutes cotisations)
+    const { data: toutesLesCotis } = await admin
+      .from("cotisations")
+      .select("status")
       .in("user_id", clientIds);
 
-    activeCotisations = (cots ?? []).filter((c) => c.status === "active").length;
-    completedCotisations = (cots ?? []).filter((c) => c.status === "completed").length;
+    const terminees = (toutesLesCotis ?? []).filter((c) => c.status === "completed").length;
+    const totalCotis = (toutesLesCotis ?? []).length;
+    tauxCompletion = totalCotis > 0 ? Math.round((terminees / totalCotis) * 100) : 0;
 
-    const cotIds = (cots ?? []).map((c) => c.id);
-    const cotUserMap = Object.fromEntries((cots ?? []).map((c) => [c.id, c.user_id]));
+    // 6. 7-day chart — per-day queries
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return d;
+    });
 
-    if (cotIds.length > 0) {
-      // Last 7 days payments
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-      sevenDaysAgo.setHours(0, 0, 0, 0);
+    chartData = await Promise.all(
+      last7Days.map(async (date) => {
+        const start = new Date(date);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(date);
+        end.setHours(23, 59, 59, 999);
 
-      const { data: payments } = await admin
-        .from("payments")
-        .select("amount, paid_at, cotisation_id")
-        .in("cotisation_id", cotIds)
-        .gte("paid_at", sevenDaysAgo.toISOString())
-        .order("paid_at", { ascending: true });
+        const { data: dayPayments } = await admin
+          .from("payments")
+          .select("amount")
+          .in("user_id", clientIds)
+          .eq("status", "success")
+          .gte("created_at", start.toISOString())
+          .lte("created_at", end.toISOString());
 
-      totalCollected = (payments ?? []).reduce((s, p) => s + (p.amount ?? 0), 0);
+        return {
+          jour: date.toLocaleDateString("fr-FR", { weekday: "short" }),
+          montant: (dayPayments ?? []).reduce((s, p) => s + (p.amount ?? 0), 0),
+        };
+      })
+    );
 
-      // Group by day
-      const dayMap: Record<string, number> = {};
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const key = d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric" });
-        dayMap[key] = 0;
-      }
-      (payments ?? []).forEach((p) => {
-        const d = new Date(p.paid_at);
-        const key = d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric" });
-        if (key in dayMap) dayMap[key] = (dayMap[key] ?? 0) + p.amount;
-      });
-      dailyData = Object.entries(dayMap).map(([date, total]) => ({ date, total }));
+    // 7. Top 3 clients this month
+    const clientStats = await Promise.all(
+      (clients ?? []).map(async (client) => {
+        const { data: payments } = await admin
+          .from("payments")
+          .select("amount")
+          .eq("user_id", client.id)
+          .eq("status", "success")
+          .gte("created_at", startOfMonthISO);
 
-      // Top clients by total payment
-      const clientTotals: Record<string, number> = {};
-      (payments ?? []).forEach((p) => {
-        const userId = cotUserMap[p.cotisation_id];
-        if (userId) clientTotals[userId] = (clientTotals[userId] ?? 0) + p.amount;
-      });
-      topClients = Object.entries(clientTotals)
-        .map(([uid, total]) => ({
-          name: (clients ?? []).find((c) => c.id === uid)?.full_name ?? "—",
-          total,
-        }))
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 3);
-    }
+        const total = (payments ?? []).reduce((s, p) => s + (p.amount ?? 0), 0);
+        return {
+          name: client.full_name ?? "—",
+          totalMois: total,
+          nbVersements: payments?.length ?? 0,
+        };
+      })
+    );
+
+    top3 = clientStats
+      .filter((c) => c.totalMois > 0)
+      .sort((a, b) => b.totalMois - a.totalMois)
+      .slice(0, 3);
   }
 
-  const totalCotisations = activeCotisations + completedCotisations;
-  const completionRate = totalCotisations > 0 ? Math.round((completedCotisations / totalCotisations) * 100) : 0;
+  const progression = objectif > 0 ? Math.min(Math.round((totalMois / objectif) * 100), 100) : 0;
 
   const stats = [
-    { label: "Clients assignés", value: clientIds.length, icon: Users, bg: "#0D3B8C" },
-    { label: "Collecté (7j)", value: formatCFA(totalCollected), icon: Wallet, bg: "#2D9B6F" },
-    { label: "Cotisations actives", value: activeCotisations, icon: TrendingUp, bg: "#378ADD" },
-    { label: "Taux complétion", value: `${completionRate}%`, icon: Target, bg: "#F5A623" },
+    { label: "Clients assignés",   value: clientIds.length,         icon: Users,       bg: "#0D3B8C" },
+    { label: "Encaissé ce mois",   value: formatCFA(totalMois),     icon: Wallet,      bg: "#2D9B6F" },
+    { label: "Clients actifs",     value: clientsActifs,            icon: TrendingUp,  bg: "#378ADD" },
+    { label: "Taux complétion",    value: `${tauxCompletion}%`,     icon: Target,      bg: "#F5A623" },
   ];
 
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
         <h1 className="text-2xl font-black text-gray-900">Mes statistiques</h1>
-        <p className="text-gray-400 text-sm mt-0.5">7 derniers jours</p>
+        <p className="text-gray-400 text-sm mt-0.5">
+          {nbVersementsMois} versement{nbVersementsMois !== 1 ? "s" : ""} ce mois
+        </p>
       </div>
 
       {/* Stat cards */}
@@ -120,7 +163,14 @@ export default async function CommercialStatsPage() {
         ))}
       </div>
 
-      <CommercialStatsCharts dailyData={dailyData} topClients={topClients} completionRate={completionRate} />
+      <CommercialStatsCharts
+        chartData={chartData}
+        topClients={top3}
+        completionRate={tauxCompletion}
+        objectif={objectif}
+        totalMois={totalMois}
+        progression={progression}
+      />
     </div>
   );
 }
