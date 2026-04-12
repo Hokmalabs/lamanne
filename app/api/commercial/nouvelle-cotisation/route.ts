@@ -98,12 +98,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: cotError.message }, { status: 500 });
   }
 
-  // Record first payment
-  await admin.from("payments").insert({
+  // Record first payment (all NOT NULL fields required)
+  const { error: paymentError } = await admin.from("payments").insert({
     cotisation_id: cotisation.id,
+    user_id: client_id,
     amount: first_payment,
+    status: "success",
+    payment_method: "cash",
+    transaction_ref: `CASH-${Date.now()}`,
     paid_at: now,
   });
+
+  if (paymentError) {
+    console.error("[NouvelleCotsiation] Payment insert error:", paymentError);
+    // Don't fail the whole request — cotisation was created, log and continue
+  }
 
   // Create notification for client
   await admin.from("notifications").insert({
