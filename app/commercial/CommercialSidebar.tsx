@@ -15,12 +15,22 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
+// Desktop sidebar — all 6 items
 const navItems = [
   { href: "/commercial",               label: "Accueil",        icon: LayoutDashboard, exact: true },
   { href: "/commercial/catalogue",     label: "Catalogue",      icon: ShoppingBag },
   { href: "/commercial/mes-clients",   label: "Mes clients",    icon: Users },
   { href: "/commercial/encaissements", label: "Encaissements",  icon: Wallet },
   { href: "/commercial/stats",         label: "Stats",          icon: BarChart2 },
+  { href: "/commercial/profil",        label: "Profil",         icon: User },
+];
+
+// Mobile bottom nav — exactly 5 items (Stats moved to desktop only)
+const mobileNavItems = [
+  { href: "/commercial",               label: "Accueil",        icon: LayoutDashboard, exact: true },
+  { href: "/commercial/catalogue",     label: "Catalogue",      icon: ShoppingBag },
+  { href: "/commercial/mes-clients",   label: "Clients",        icon: Users },
+  { href: "/commercial/encaissements", label: "Encaiss.",       icon: Wallet },
   { href: "/commercial/profil",        label: "Profil",         icon: User },
 ];
 
@@ -99,14 +109,14 @@ export function CommercialBottomNav() {
       className="md:hidden fixed bottom-0 left-0 right-0 z-40 safe-area-pb"
       style={{ background: "#fff", boxShadow: "0 -2px 16px rgba(0,0,0,0.08)" }}
     >
-      <div className="flex items-center justify-around" style={{ height: 64 }}>
-        {navItems.map(({ href, label, icon: Icon, exact }) => {
+      <div className="grid grid-cols-5" style={{ height: 64 }}>
+        {mobileNavItems.map(({ href, label, icon: Icon, exact }) => {
           const isActive = exact ? pathname === href : pathname.startsWith(href + "/") || pathname === href;
           return (
             <Link
               key={href}
               href={href}
-              className="flex flex-col items-center gap-0.5 px-3 py-1"
+              className="flex flex-col items-center justify-center gap-0.5 py-1"
             >
               <span
                 className={cn(
