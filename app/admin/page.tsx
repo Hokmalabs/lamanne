@@ -11,41 +11,44 @@ const admin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+const statusColors: Record<string, string> = {
+  active:    "bg-[#E8F1FB] text-[#0D3B8C]",
+  completed: "bg-green-100 text-green-700",
+  cancelled: "bg-red-100 text-red-600",
+};
+const statusLabels: Record<string, string> = {
+  active: "En cours", completed: "Terminé", cancelled: "Annulé",
+};
+
 function StatCard({
   icon: Icon,
   label,
   value,
-  color,
+  bg,
   href,
 }: {
   icon: React.ElementType;
   label: string;
   value: string | number;
-  color: string;
+  bg: string;
   href?: string;
 }) {
-  const content = (
-    <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3 ${href ? "hover:shadow-md transition-shadow" : ""}`}>
-      <div className={`w-10 h-10 ${color} rounded-xl flex items-center justify-center`}>
+  const inner = (
+    <div
+      className="rounded-2xl p-4 space-y-2 animate-fade-in"
+      style={{ background: bg, boxShadow: "var(--shadow-sm)" }}
+    >
+      <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/20">
         <Icon className="h-5 w-5 text-white" />
       </div>
       <div>
-        <p className="text-2xl font-black text-gray-900">{value}</p>
-        <p className="text-sm text-gray-500 mt-0.5">{label}</p>
+        <p className="text-2xl font-black text-white">{value}</p>
+        <p className="text-xs text-white/60 mt-0.5">{label}</p>
       </div>
     </div>
   );
-  return href ? <Link href={href}>{content}</Link> : <div>{content}</div>;
+  return href ? <Link href={href} className="block hover:opacity-90 transition-opacity">{inner}</Link> : inner;
 }
-
-const statusColors: Record<string, string> = {
-  active:    "bg-yellow-100 text-yellow-700",
-  completed: "bg-green-100 text-green-700",
-  cancelled: "bg-red-100 text-red-700",
-};
-const statusLabels: Record<string, string> = {
-  active: "En cours", completed: "Terminé", cancelled: "Annulé",
-};
 
 export default async function AdminOverviewPage() {
   const [
@@ -65,7 +68,6 @@ export default async function AdminOverviewPage() {
 
   const totalCollected = (collected ?? []).reduce((s, c) => s + (c.amount_paid ?? 0), 0);
 
-  // Enrich recent cotisations with profile + product (separate queries — avoids JOIN issues)
   const recent = await Promise.all(
     (recentRaw ?? []).map(async (c) => {
       const [{ data: profile }, { data: product }] = await Promise.all([
@@ -80,24 +82,26 @@ export default async function AdminOverviewPage() {
     <div className="space-y-6 max-w-5xl">
       <div>
         <h1 className="text-2xl font-black text-gray-900">Vue générale</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Tableau de bord administrateur</p>
+        <p className="text-gray-400 text-sm mt-0.5">Tableau de bord administrateur</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats 2×2 grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard icon={ClipboardList} label="Cotisations actives" value={active?.length ?? 0}
-          color="bg-lamanne-primary" href="/admin/cotisations" />
+          bg="#0D3B8C" href="/admin/cotisations" />
         <StatCard icon={TrendingUp} label="Total collecté" value={formatCFA(totalCollected)}
-          color="bg-lamanne-success" />
+          bg="#2D9B6F" />
         <StatCard icon={PackageCheck} label="Retraits en attente" value={withdrawals?.length ?? 0}
-          color="bg-lamanne-accent" href="/admin/retraits" />
-        <StatCard icon={RefreshCw} label="Remboursements en attente" value={refunds?.length ?? 0}
-          color="bg-lamanne-warning" href="/admin/remboursements" />
+          bg="#378ADD" href="/admin/retraits" />
+        <StatCard icon={RefreshCw} label="Remboursements" value={refunds?.length ?? 0}
+          bg="#F5A623" href="/admin/remboursements" />
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+      {/* Recent cotisations */}
+      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="font-bold text-gray-900">Dernières cotisations</h2>
-          <Link href="/admin/cotisations" className="text-sm text-lamanne-accent hover:underline font-medium">
+          <Link href="/admin/cotisations" className="text-sm text-[#378ADD] hover:underline font-medium">
             Voir tout
           </Link>
         </div>
@@ -109,7 +113,13 @@ export default async function AdminOverviewPage() {
             </div>
           )}
           {recent.map((c) => (
-            <div key={c.id} className="px-5 py-3.5 flex items-center gap-4">
+            <div key={c.id} className="px-5 py-3.5 flex items-center gap-3">
+              {/* Avatar initiales */}
+              <div className="w-9 h-9 rounded-full bg-[#E8F1FB] flex items-center justify-center flex-shrink-0">
+                <span className="text-[#0D3B8C] font-bold text-xs">
+                  {(c.profile as any)?.full_name?.charAt(0).toUpperCase() ?? "?"}
+                </span>
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900 truncate">
                   {(c.profile as any)?.full_name ?? "—"}

@@ -25,6 +25,26 @@
   --input: 214.3 31.8% 91.4%;
   --ring: 210 72% 55%;
   --radius: 0.75rem;
+
+  /* Design tokens */
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.14);
+  --blue-primary: #0D3B8C;
+  --blue-accent: #378ADD;
+  --blue-light: #E8F1FB;
+  --green: #2D9B6F;
+  --orange: #F5A623;
+  --red: #E53E3E;
+  --gray-50: #F8F9FC;
+  --gray-100: #F0F2F7;
+  --gray-200: #E2E6EF;
+  --gray-500: #8892A4;
+  --gray-900: #1A1F36;
 }
 
 * {
@@ -33,35 +53,101 @@
 
 body {
   @apply bg-gray-50 text-foreground font-sans;
-  font-feature-settings: "rlig" 1, "calt" 1;
+  font-feature-settings: "cv11", "rlig" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--gray-900);
 }
 
-/* Scrollbar personnalisée */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
+/* ─── Typography ────────────────────────────────────────────── */
+h1 { font-size: 28px; font-weight: 700; }
+h2 { font-size: 22px; font-weight: 600; }
+h3 { font-size: 18px; font-weight: 600; }
 
-::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
+/* ─── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #378ADD; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #0D3B8C; }
 
-::-webkit-scrollbar-thumb {
-  background: #378ADD;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #0D3B8C;
-}
-
-/* Safe area pour mobile */
+/* ─── Safe area ─────────────────────────────────────────────── */
 .safe-area-pb {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Animation smooth */
-* {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* ─── Micro-interactions — button press ─────────────────────── */
+button:active, a:active {
+  transform: scale(0.98);
+}
+
+/* ─── Fade-in on card load ───────────────────────────────────── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeInUp 0.35s ease forwards;
+}
+
+/* Staggered children */
+.animate-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.animate-stagger > *:nth-child(2) { animation-delay: 60ms; }
+.animate-stagger > *:nth-child(3) { animation-delay: 120ms; }
+.animate-stagger > *:nth-child(4) { animation-delay: 180ms; }
+.animate-stagger > *:nth-child(5) { animation-delay: 240ms; }
+.animate-stagger > *:nth-child(6) { animation-delay: 300ms; }
+
+/* ─── Progress bar animation ─────────────────────────────────── */
+.progress-bar-fill {
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Bottom sheet slide-up ──────────────────────────────────── */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.sheet-slide-up {
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ─── Skeleton loading ───────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #f0f2f7 25%, #e2e6ef 50%, #f0f2f7 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 12px;
+}
+
+/* ─── Scrollbar-none utility ─────────────────────────────────── */
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* ─── Input focus styles ─────────────────────────────────────── */
+input, textarea, select {
+  font-size: 16px !important; /* prevents iOS zoom */
+}
+
+/* ─── Card hover lift ────────────────────────────────────────── */
+.card-hover {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.card-hover:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* ─── Badge pulse (notification) ────────────────────────────── */
+@keyframes pulse-badge {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.15); }
+}
+.badge-pulse {
+  animation: pulse-badge 2s ease-in-out infinite;
 }

@@ -3,9 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ProductCard } from "@/components/product-card";
-import { Input } from "@/components/ui/input";
 import { Category, Product } from "@/lib/types";
-import { Search, SlidersHorizontal, PackageOpen } from "lucide-react";
+import { Search, PackageOpen, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 
@@ -29,114 +28,106 @@ export default function CataloguePage() {
           .eq("is_active", true)
           .order("name"),
       ]);
-
       if (cats) setCategories(cats);
       if (prods) setProducts(prods as ProductWithCategory[]);
       setLoading(false);
     }
-
     fetchData();
   }, []);
 
   const filtered = products.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory =
-      activeCategory === "all" || p.category_id === activeCategory;
+    const matchesCategory = activeCategory === "all" || p.category_id === activeCategory;
     return matchesSearch && matchesCategory;
   });
 
   return (
-    <div className="max-w-4xl mx-auto space-y-5">
-      {/* En-tête */}
+    <div className="max-w-4xl mx-auto space-y-4">
       <div>
         <h1 className="text-2xl font-black text-gray-900">Catalogue</h1>
-        <p className="text-gray-500 text-sm mt-0.5">
-          {loading ? "Chargement..." : `${filtered.length} article(s) disponible(s)`}
+        <p className="text-gray-400 text-sm mt-0.5">
+          {loading ? "Chargement…" : `${filtered.length} article(s) disponible(s)`}
         </p>
       </div>
 
-      {/* Barre de recherche */}
-      <div className="relative">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input
-          type="search"
-          placeholder="Rechercher un article..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
-        />
+      {/* Search bar — sticky */}
+      <div className="sticky top-14 md:top-0 z-10 -mx-4 px-4 py-2 bg-[#F8F9FC]">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="search"
+            placeholder="Rechercher un article…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-11 pr-4 py-3 bg-white rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#0D3B8C]/20 transition-all"
+            style={{ boxShadow: "var(--shadow-sm)" }}
+          />
+        </div>
       </div>
 
-      {/* Filtres catégories */}
+      {/* Category filters — horizontal scroll */}
       {!loading && categories.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-          <button
-            onClick={() => setActiveCategory("all")}
-            className={cn(
-              "flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all",
-              activeCategory === "all"
-                ? "bg-lamanne-primary text-white shadow-sm"
-                : "bg-white text-gray-600 border border-gray-200 hover:border-lamanne-accent hover:text-lamanne-accent"
-            )}
-          >
-            Tout
-          </button>
-          {categories.map((cat) => (
+        <div className="-mx-4 px-4">
+          <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
             <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
+              onClick={() => setActiveCategory("all")}
               className={cn(
                 "flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all",
-                activeCategory === cat.id
-                  ? "bg-lamanne-primary text-white shadow-sm"
-                  : "bg-white text-gray-600 border border-gray-200 hover:border-lamanne-accent hover:text-lamanne-accent"
+                activeCategory === "all"
+                  ? "bg-[#0D3B8C] text-white"
+                  : "bg-white text-gray-500 border border-gray-200 hover:border-[#378ADD] hover:text-[#378ADD]"
               )}
             >
-              {cat.name}
+              Tout
             </button>
-          ))}
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={cn(
+                  "flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all",
+                  activeCategory === cat.id
+                    ? "bg-[#0D3B8C] text-white"
+                    : "bg-white text-gray-500 border border-gray-200 hover:border-[#378ADD] hover:text-[#378ADD]"
+                )}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Skeleton chargement */}
+      {/* Skeletons */}
       {loading && (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div
-              key={i}
-              className="bg-white rounded-2xl border border-gray-100 h-64 animate-pulse"
-            />
+            <div key={i} className="skeleton" style={{ aspectRatio: "3/4" }} />
           ))}
         </div>
       )}
 
-      {/* État vide — pas encore de produits */}
+      {/* Empty — no products at all */}
       {!loading && products.length === 0 && (
         <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-14 text-center">
           <PackageOpen className="h-10 w-10 text-gray-300 mx-auto mb-4" />
-          <h3 className="font-bold text-gray-600 text-lg mb-1">
-            Catalogue bientôt disponible
-          </h3>
-          <p className="text-gray-400 text-sm">
-            Nos produits arrivent prochainement. Revenez bientôt !
-          </p>
+          <h3 className="font-bold text-gray-600 text-lg mb-1">Catalogue bientôt disponible</h3>
+          <p className="text-gray-400 text-sm">Nos produits arrivent prochainement !</p>
         </div>
       )}
 
-      {/* Aucun résultat de recherche */}
+      {/* Empty — no search results */}
       {!loading && products.length > 0 && filtered.length === 0 && (
         <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
           <SlidersHorizontal className="h-8 w-8 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500 font-medium">Aucun article trouvé</p>
-          <p className="text-gray-400 text-sm mt-1">
-            Modifiez votre recherche ou sélectionnez une autre catégorie.
-          </p>
+          <p className="text-gray-400 text-sm mt-1">Modifiez votre recherche ou la catégorie.</p>
         </div>
       )}
 
-      {/* Grille produits */}
+      {/* Grid */}
       {!loading && filtered.length > 0 && (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 animate-stagger">
           {filtered.map((product) => (
             <ProductCard
               key={product.id}

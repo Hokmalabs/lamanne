@@ -4,6 +4,15 @@ import { createServerClient } from "@supabase/ssr";
 const PROTECTED_ROUTES = ["/dashboard", "/catalogue", "/cotisations", "/historique", "/profil", "/admin", "/commercial"];
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // /hokma-admin → serve admin-login page (never protected, never auto-redirected)
+  if (pathname === "/hokma-admin") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/admin-login";
+    return NextResponse.rewrite(url);
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -31,8 +40,6 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const { pathname } = request.nextUrl;
 
   // Protection : redirige vers /login si non connecté
   const isProtected = PROTECTED_ROUTES.some(

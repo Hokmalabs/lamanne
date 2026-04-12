@@ -43,7 +43,7 @@ export default function AdminSidebar({ isSuperAdmin }: { isSuperAdmin: boolean }
       {/* Logo */}
       <div className="p-5 border-b border-white/10">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 bg-lamanne-primary rounded-xl flex items-center justify-center">
+          <div className="w-9 h-9 bg-[#0D3B8C] rounded-xl flex items-center justify-center">
             <ShieldCheck className="h-5 w-5 text-white" />
           </div>
           <div>
@@ -64,7 +64,7 @@ export default function AdminSidebar({ isSuperAdmin }: { isSuperAdmin: boolean }
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
                 isActive
-                  ? "bg-lamanne-primary text-white"
+                  ? "bg-[#0D3B8C] text-white"
                   : "text-white/60 hover:bg-white/8 hover:text-white"
               )}
             >
@@ -75,7 +75,6 @@ export default function AdminSidebar({ isSuperAdmin }: { isSuperAdmin: boolean }
         })}
       </nav>
 
-      {/* Retour dashboard + logout */}
       <div className="p-4 border-t border-white/10 space-y-1">
         <Link
           href="/dashboard"

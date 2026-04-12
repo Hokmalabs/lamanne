@@ -23,38 +23,34 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Sidebar (desktop) */}
+    <div className="min-h-screen" style={{ background: "#F8F9FC" }}>
+      {/* Sidebar desktop */}
       <Sidebar userName={userName} />
 
-      {/* Main content */}
       <div className="md:ml-64 flex flex-col min-h-screen">
-        {/* Top header mobile */}
-        <header className="md:hidden sticky top-0 z-20 bg-white border-b border-gray-100 px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-lamanne-primary rounded-xl flex items-center justify-center">
+        {/* Mobile header */}
+        <header className="md:hidden sticky top-0 z-20 bg-white px-5 h-14 flex items-center justify-between" style={{ boxShadow: "0 1px 0 #E2E6EF" }}>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-[#0D3B8C] rounded-xl flex items-center justify-center">
               <span className="text-white font-black text-xs">LM</span>
             </div>
-            <span className="text-lamanne-primary font-black text-lg">LAMANNE</span>
+            <span className="text-[#0D3B8C] font-black text-lg tracking-wide">LAMANNE</span>
           </div>
           <NotificationBell />
         </header>
 
-        {/* Top bar desktop */}
-        <div className="hidden md:flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100">
-          <div />
-          <div className="flex items-center gap-3">
-            <NotificationBell />
-          </div>
+        {/* Desktop top bar */}
+        <div className="hidden md:flex items-center justify-end px-8 py-4 bg-white border-b border-gray-100">
+          <NotificationBell />
         </div>
 
-        {/* Page content */}
-        <main className="flex-1 px-4 py-5 md:px-8 md:py-6 pb-24 md:pb-6">
+        {/* Page content — pb-20 so bottom nav doesn't overlap */}
+        <main className="flex-1 px-4 py-5 md:px-8 md:py-6 pb-20 md:pb-6">
           {children}
         </main>
       </div>
 
-      {/* Bottom nav (mobile) */}
+      {/* Bottom nav mobile */}
       <BottomNav />
     </div>
   );

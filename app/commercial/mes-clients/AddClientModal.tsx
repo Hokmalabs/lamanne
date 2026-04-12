@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UserPlus, X, CheckCircle } from "lucide-react";
 
-export default function AddClientModal({ commercialId }: { commercialId: string }) {
+export default function AddClientModal({ commercialId, fab }: { commercialId: string; fab?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -52,10 +52,20 @@ export default function AddClientModal({ commercialId }: { commercialId: string 
 
   return (
     <>
-      <Button onClick={() => setOpen(true)} size="sm" className="flex items-center gap-2">
-        <UserPlus className="h-4 w-4" />
-        Ajouter un client
-      </Button>
+      {fab ? (
+        <button
+          onClick={() => setOpen(true)}
+          className="w-14 h-14 rounded-full bg-[#0D3B8C] text-white flex items-center justify-center shadow-lg hover:bg-[#0D3B8C]/90 transition-all active:scale-95"
+          aria-label="Ajouter un client"
+        >
+          <UserPlus className="h-6 w-6" />
+        </button>
+      ) : (
+        <Button onClick={() => setOpen(true)} size="sm" className="flex items-center gap-2">
+          <UserPlus className="h-4 w-4" />
+          Ajouter un client
+        </Button>
+      )}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

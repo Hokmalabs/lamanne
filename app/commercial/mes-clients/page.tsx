@@ -55,13 +55,10 @@ export default async function MesClientsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-gray-900">Mes clients</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{list.length} client(s) assigné(s)</p>
-        </div>
-        <AddClientModal commercialId={user.id} />
+    <div className="space-y-5 relative pb-20">
+      <div>
+        <h1 className="text-2xl font-black text-gray-900">Mes clients</h1>
+        <p className="text-gray-400 text-sm mt-0.5">{list.length} client(s) assigné(s)</p>
       </div>
 
       <ClientsListWithSearch
@@ -69,6 +66,11 @@ export default async function MesClientsPage() {
         cotisationsMap={cotisationsMap}
         lastPaymentMap={lastPaymentMap}
       />
+
+      {/* FAB "+" */}
+      <div className="fixed bottom-20 right-5 z-40 md:bottom-6">
+        <AddClientModal commercialId={user.id} fab />
+      </div>
     </div>
   );
 }
