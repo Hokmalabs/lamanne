@@ -41,14 +41,14 @@ export default function EquipeTableWithSearch({ members }: { members: Member[] }
     <>
       {/* Filters + Search */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {(["all", "admin", "commercial"] as RoleFilter[]).map((f) => (
             <button
               key={f}
               onClick={() => setRoleFilter(f)}
               className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
                 roleFilter === f
-                  ? "bg-lamanne-primary text-white"
+                  ? "bg-[#0D3B8C] text-white"
                   : "bg-white border border-gray-200 text-gray-600 hover:border-gray-400"
               }`}
             >
@@ -62,78 +62,111 @@ export default function EquipeTableWithSearch({ members }: { members: Member[] }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Rechercher…"
-            className="pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-lamanne-primary/20 w-full sm:w-64"
+            className="pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0D3B8C]/20 w-full sm:w-64"
+            style={{ fontSize: "16px" }}
           />
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-            <UserCog className="h-12 w-12 mb-3 opacity-30" />
-            <p className="font-medium">Aucun membre trouvé</p>
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-6 py-3 font-semibold text-gray-500">Membre</th>
-                <th className="text-left px-6 py-3 font-semibold text-gray-500">Téléphone</th>
-                <th className="text-left px-6 py-3 font-semibold text-gray-500">Rôle</th>
-                <th className="text-left px-6 py-3 font-semibold text-gray-500">Depuis</th>
-                <th className="text-left px-6 py-3 font-semibold text-gray-500">Statut</th>
-                <th className="text-right px-6 py-3 font-semibold text-gray-500">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filtered.map((m) => {
-                const roleInfo = ROLE_LABELS[m.role] ?? ROLE_LABELS.user;
-                return (
-                  <tr key={m.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                          <span className="font-bold text-gray-600 text-xs">
-                            {m.full_name?.charAt(0).toUpperCase() ?? "?"}
-                          </span>
-                        </div>
-                        <span className="font-medium text-gray-900">{m.full_name ?? "—"}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-500">{m.phone ?? "—"}</td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${roleInfo.color}`}>
-                        {roleInfo.label}
+      {filtered.length === 0 ? (
+        <div className="bg-white rounded-2xl flex flex-col items-center justify-center py-16 text-gray-400" style={{ boxShadow: "var(--shadow-sm)" }}>
+          <UserCog className="h-12 w-12 mb-3 opacity-30" />
+          <p className="font-medium">Aucun membre trouvé</p>
+        </div>
+      ) : (
+        <>
+          {/* Mobile: cards */}
+          <div className="md:hidden space-y-3">
+            {filtered.map((m) => {
+              const roleInfo = ROLE_LABELS[m.role] ?? ROLE_LABELS.user;
+              return (
+                <div key={m.id} className="bg-white rounded-2xl p-4" style={{ boxShadow: "var(--shadow-sm)" }}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                      <span className="font-bold text-gray-600 text-sm">
+                        {m.full_name?.charAt(0).toUpperCase() ?? "?"}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-400 text-xs">
-                      {new Date(m.created_at).toLocaleDateString("fr-FR")}
-                    </td>
-                    <td className="px-6 py-4">
-                      {m.is_suspended ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-600">
-                          Suspendu
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-900 truncate">{m.full_name ?? "—"}</p>
+                      <p className="text-xs text-gray-400">{m.phone ?? "—"}</p>
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold flex-shrink-0 ${roleInfo.color}`}>
+                      {roleInfo.label}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${m.is_suspended ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"}`}>
+                      {m.is_suspended ? "Suspendu" : "Actif"}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <AssignRoleButton memberId={m.id} currentRole={m.role} />
+                      <MemberActions memberId={m.id} isSuspended={!!m.is_suspended} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop: table */}
+          <div className="hidden md:block bg-white rounded-2xl overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50">
+                  <th className="text-left px-6 py-3 font-semibold text-gray-500">Membre</th>
+                  <th className="text-left px-6 py-3 font-semibold text-gray-500">Téléphone</th>
+                  <th className="text-left px-6 py-3 font-semibold text-gray-500">Rôle</th>
+                  <th className="text-left px-6 py-3 font-semibold text-gray-500">Depuis</th>
+                  <th className="text-left px-6 py-3 font-semibold text-gray-500">Statut</th>
+                  <th className="text-right px-6 py-3 font-semibold text-gray-500">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filtered.map((m) => {
+                  const roleInfo = ROLE_LABELS[m.role] ?? ROLE_LABELS.user;
+                  return (
+                    <tr key={m.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <span className="font-bold text-gray-600 text-xs">
+                              {m.full_name?.charAt(0).toUpperCase() ?? "?"}
+                            </span>
+                          </div>
+                          <span className="font-medium text-gray-900">{m.full_name ?? "—"}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-gray-500">{m.phone ?? "—"}</td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${roleInfo.color}`}>
+                          {roleInfo.label}
                         </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-600">
-                          Actif
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center gap-2 justify-end">
-                        <AssignRoleButton memberId={m.id} currentRole={m.role} />
-                        <MemberActions memberId={m.id} isSuspended={!!m.is_suspended} />
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+                      </td>
+                      <td className="px-6 py-4 text-gray-400 text-xs">
+                        {new Date(m.created_at).toLocaleDateString("fr-FR")}
+                      </td>
+                      <td className="px-6 py-4">
+                        {m.is_suspended ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-600">Suspendu</span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-600">Actif</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center gap-2 justify-end">
+                          <AssignRoleButton memberId={m.id} currentRole={m.role} />
+                          <MemberActions memberId={m.id} isSuspended={!!m.is_suspended} />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </>
   );
 }

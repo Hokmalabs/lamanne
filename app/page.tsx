@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import LandingSimulator from "@/components/LandingSimulator";
 import {
   ShoppingBag,
   CreditCard,
@@ -227,6 +228,8 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      <LandingSimulator />
 
       {/* Témoignages */}
       <section className="py-20 bg-lamanne-light/40">

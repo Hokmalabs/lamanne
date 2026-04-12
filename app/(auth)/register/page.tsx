@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
-import { Eye, EyeOff, UserPlus, CheckCircle, Phone, Mail } from "lucide-react";
+import { Eye, EyeOff, UserPlus, CheckCircle, Phone, Mail, Gift } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function normalizePhone(phone: string): string {
@@ -19,14 +19,21 @@ function phoneToEmail(phone: string): string {
   return `phone_${digits}@lamanne.app`;
 }
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [tab, setTab] = useState<"email" | "phone">("email");
 
   // Common
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [referralCode, setReferralCode] = useState("");
+
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref) setReferralCode(ref.toUpperCase());
+  }, [searchParams]);
 
   // Email mode
   const [email, setEmail] = useState("");
@@ -55,7 +62,7 @@ export default function RegisterPage() {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName, phone } },
+      options: { data: { full_name: fullName, phone, referral_code_used: referralCode || null } },
     });
 
     if (signUpError) {
@@ -100,7 +107,7 @@ export default function RegisterPage() {
     const res = await fetch("/api/auth/register-phone", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ full_name: fullName, phone, pin, role: "user" }),
+      body: JSON.stringify({ full_name: fullName, phone, pin, role: "user", referral_code_used: referralCode || null }),
     });
 
     if (!res.ok) {
@@ -208,6 +215,23 @@ export default function RegisterPage() {
               onChange={(e) => setFullName(e.target.value)}
               required
               autoComplete="name"
+              style={{ fontSize: "16px" }}
+            />
+          </div>
+
+          {/* Referral code */}
+          <div className="space-y-1.5 mb-4">
+            <Label htmlFor="referral" className="flex items-center gap-1.5">
+              <Gift className="h-3.5 w-3.5 text-[#F5A623]" />
+              Code de parrainage <span className="text-gray-400 font-normal">(optionnel)</span>
+            </Label>
+            <Input
+              id="referral"
+              type="text"
+              placeholder="ex : AB12CD"
+              value={referralCode}
+              onChange={(e) => setReferralCode(e.target.value.toUpperCase().slice(0, 6))}
+              autoComplete="off"
               style={{ fontSize: "16px" }}
             />
           </div>
@@ -351,5 +375,13 @@ export default function RegisterPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterForm />
+    </Suspense>
   );
 }

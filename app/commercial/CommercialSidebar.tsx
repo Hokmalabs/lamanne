@@ -11,6 +11,7 @@ import {
   Wallet,
   User,
   LogOut,
+  BarChart2,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -19,6 +20,7 @@ const navItems = [
   { href: "/commercial/catalogue",     label: "Catalogue",      icon: ShoppingBag },
   { href: "/commercial/mes-clients",   label: "Mes clients",    icon: Users },
   { href: "/commercial/encaissements", label: "Encaissements",  icon: Wallet },
+  { href: "/commercial/stats",         label: "Stats",          icon: BarChart2 },
   { href: "/profil",                   label: "Profil",         icon: User },
 ];
 

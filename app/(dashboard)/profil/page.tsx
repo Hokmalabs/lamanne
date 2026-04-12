@@ -17,12 +17,17 @@ import {
   Check,
   X,
   CalendarDays,
+  Gift,
+  Copy,
+  CheckCheck,
 } from "lucide-react";
 
 interface ProfileData {
   full_name: string;
   phone: string;
   created_at: string;
+  referral_code?: string | null;
+  referral_bonus?: number;
 }
 
 export default function ProfilPage() {
@@ -35,6 +40,7 @@ export default function ProfilPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [form, setForm] = useState({ full_name: "", phone: "" });
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     async function fetchProfile() {
@@ -47,7 +53,7 @@ export default function ProfilPage() {
 
       const { data } = await supabase
         .from("profiles")
-        .select("full_name, phone, created_at")
+        .select("full_name, phone, created_at, referral_code, referral_bonus")
         .eq("id", user.id)
         .single();
 
@@ -261,6 +267,49 @@ export default function ProfilPage() {
           </div>
         )}
       </div>
+
+      {/* Parrainage */}
+      {profile?.referral_code && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Gift className="h-5 w-5 text-[#F5A623]" />
+            <h3 className="font-bold text-gray-900">Mon code de parrainage</h3>
+          </div>
+          <p className="text-sm text-gray-500 mb-3">
+            Partagez votre code avec vos proches. Ils bénéficient d&apos;un accueil prioritaire !
+          </p>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 bg-[#F8F9FC] rounded-xl px-4 py-3 font-black text-xl text-[#0D3B8C] tracking-widest text-center">
+              {profile.referral_code}
+            </div>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(profile.referral_code!);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
+              className="p-3 rounded-xl bg-[#E8F1FB] text-[#0D3B8C] hover:bg-[#0D3B8C]/20 transition-colors"
+            >
+              {copied ? <CheckCheck className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
+            </button>
+          </div>
+          {(profile.referral_bonus ?? 0) > 0 && (
+            <p className="text-xs text-green-600 font-semibold mt-2 text-center">
+              🎉 Bonus accumulé : {profile.referral_bonus} filleul(s)
+            </p>
+          )}
+          <button
+            onClick={() => {
+              const text = `🎁 Rejoins LAMANNE avec mon code ${profile.referral_code} et cotise pour tes articles préférés sans intérêts !\nhttps://lamanne.app/register?ref=${profile.referral_code}`;
+              window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+            }}
+            className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#25D366]/10 text-[#25D366] font-semibold text-sm hover:bg-[#25D366]/20 transition-colors"
+          >
+            <Gift className="h-4 w-4" />
+            Partager via WhatsApp
+          </button>
+        </div>
+      )}
 
       {/* Déconnexion */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">

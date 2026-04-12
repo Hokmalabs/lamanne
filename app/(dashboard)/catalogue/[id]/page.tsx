@@ -13,6 +13,7 @@ import {
   CreditCard,
   AlertTriangle,
   Calendar,
+  MessageCircle,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -143,13 +144,26 @@ export default function ProductDetailPage() {
 
   return (
     <div className="max-w-xl mx-auto space-y-5">
-      <Link
-        href="/catalogue"
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"
-      >
-        <ChevronLeft className="h-4 w-4" />
-        Retour au catalogue
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link
+          href="/catalogue"
+          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Retour au catalogue
+        </Link>
+        <button
+          onClick={() => {
+            const url = `${window.location.origin}/catalogue-public/${product.id}`;
+            const text = `🛍️ "${product.name}" sur LAMANNE — Cotisez à votre rythme !\n${url}`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+          }}
+          className="flex items-center gap-1.5 text-sm font-semibold text-[#25D366] bg-[#25D366]/10 px-3 py-1.5 rounded-xl hover:bg-[#25D366]/20 transition-colors"
+        >
+          <MessageCircle className="h-4 w-4" />
+          Partager
+        </button>
+      </div>
 
       {/* Image + infos produit */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
