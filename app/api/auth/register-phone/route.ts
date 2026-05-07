@@ -1,76 +1,61 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from "next/server";
 import { z } from "zod";
-
-// Uses service role to create user with email_confirm: true — bypasses email sending entirely
-const admin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { randomInt } from "crypto";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import {
+  checkOrigin,
+  validateInput,
+  handleApiError,
+  ApiError,
+} from "@/lib/api-security";
 
 const schema = z.object({
-  full_name: z.string().min(2),
-  phone: z.string().min(6),
-  pin: z.string().length(4).regex(/^\d{4}$/).optional(), // auto-generated if omitted
-  role: z.enum(["user", "commercial", "admin"]).default("user"),
-  assigned_commercial: z.string().uuid().optional(),
+  full_name: z.string().min(2).max(100).trim(),
+  phone: z
+    .string()
+    .regex(
+      /^\+\d{10,15}$/,
+      "Numéro de téléphone invalide (format attendu : +225...)",
+    ),
+  pin: z.string().length(4).regex(/^\d{4}$/).optional(),
 });
 
-export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const parsed = schema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Données invalides" }, { status: 400 });
-  }
+export async function POST(request: Request) {
+  try {
+    checkOrigin(request);
+    const body = validateInput(schema, await request.json());
 
-  const { full_name, phone, role, assigned_commercial } = parsed.data;
-  // Generate a random 4-digit PIN if none provided (commercial/admin creating a client)
-  const pin = parsed.data.pin ?? String(Math.floor(1000 + Math.random() * 9000));
+    const { full_name, phone } = body;
+    const pin = body.pin ?? randomInt(1000, 10000).toString();
 
-  const cleanPhone = phone.replace(/\s/g, "").replace(/^00/, "+");
-  const digits = cleanPhone.replace(/\D/g, "");
-  const email = `phone_${digits}@lamanne.app`;
+    const digits = phone.replace(/\D/g, "");
+    const email = `phone_${digits}@lamanne.app`;
 
-  // Check if already exists
-  const { data: existing } = await admin
-    .from("profiles")
-    .select("id")
-    .eq("phone", cleanPhone)
-    .maybeSingle();
-
-  if (existing) {
-    return NextResponse.json(
-      { error: "Ce numéro est déjà enregistré." },
-      { status: 409 }
-    );
-  }
-
-  const { data: newUser, error: createError } = await admin.auth.admin.createUser({
-    email,
-    password: pin + "LM",
-    email_confirm: true, // ← bypasses email confirmation entirely
-    user_metadata: { full_name, phone: cleanPhone },
-  });
-
-  if (createError) {
-    if (createError.message.includes("already been registered")) {
-      return NextResponse.json(
-        { error: "Ce numéro est déjà enregistré." },
-        { status: 409 }
-      );
-    }
-    return NextResponse.json({ error: createError.message }, { status: 400 });
-  }
-
-  if (newUser?.user) {
-    await admin.from("profiles").upsert({
-      id: newUser.user.id,
-      full_name,
-      phone: cleanPhone,
-      role,
-      ...(assigned_commercial ? { assigned_commercial } : {}),
+    const { error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password: pin + "LM",
+      email_confirm: true,
+      user_metadata: { full_name, phone },
     });
-  }
 
-  return NextResponse.json({ ok: true });
+    if (createError) {
+      const msg = createError.message.toLowerCase();
+      if (
+        msg.includes("already") ||
+        msg.includes("registered") ||
+        createError.status === 422
+      ) {
+        throw new ApiError(
+          409,
+          "Ce numéro de téléphone est déjà utilisé",
+          "INVALID_INPUT",
+        );
+      }
+      throw createError;
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    return handleApiError(e);
+  }
 }

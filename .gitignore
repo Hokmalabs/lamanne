@@ -34,3 +34,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Claude Code local files
+.claude/
+
+# Internal security/audit docs (never commit)
+docs/internal/
+AUDIT_INVENTORY.md
