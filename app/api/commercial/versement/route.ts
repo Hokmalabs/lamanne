@@ -1,79 +1,101 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-
-const admin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { randomInt } from "crypto";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import {
+  requireAuth,
+  requireRole,
+  validateInput,
+  checkOrigin,
+  handleApiError,
+  ApiError,
+} from "@/lib/api-security";
 
 const schema = z.object({
-  cotisation_id: z.string().uuid(),
-  amount: z.number().min(1000),
+  cotisation_id: z.string().uuid("ID de cotisation invalide"),
+  amount: z.number().int().min(1000, "Le montant minimum est de 1000 FCFA"),
 });
 
 export async function POST(req: NextRequest) {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  try {
+    checkOrigin(req);
+    const ctx = await requireAuth(req);
+    requireRole(ctx, ["commercial", "admin", "super_admin"]);
+    const { cotisation_id, amount } = validateInput(schema, await req.json());
 
-  if (!user) {
-    return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-  }
+    // Récupérer la cotisation
+    const { data: cot, error: cotFetchError } = await supabaseAdmin
+      .from("cotisations")
+      .select(
+        "id, user_id, amount_paid, amount_remaining, nb_tranches, status, products(price)",
+      )
+      .eq("id", cotisation_id)
+      .single();
 
-  const { data: callerProfile } = await admin
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+    if (cotFetchError || !cot) {
+      throw new ApiError(404, "Cotisation introuvable", "NOT_FOUND");
+    }
 
-  if (!callerProfile || !["commercial", "admin", "super_admin"].includes(callerProfile.role)) {
-    return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
-  }
+    if (cot.status !== "active") {
+      throw new ApiError(409, "Cotisation non active", "INVALID_INPUT");
+    }
 
-  const body = await req.json();
-  const parsed = schema.safeParse(body);
-  if (!parsed.success) {
-    console.error("[Versement] Validation error:", parsed.error.flatten());
-    return NextResponse.json({ error: "Données invalides" }, { status: 400 });
-  }
+    // Vérification d'autorisation : le commercial doit être assigné au client
+    const role = ctx.profile.role;
+    const userId = ctx.user.id;
+    const isAdmin = role === "admin" || role === "super_admin";
 
-  const { cotisation_id, amount } = parsed.data;
+    if (!isAdmin) {
+      const { data: clientProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("assigned_commercial")
+        .eq("id", cot.user_id)
+        .single();
 
-  // Fetch cotisation with all needed fields
-  const { data: cot, error: cotFetchError } = await admin
-    .from("cotisations")
-    .select("id, user_id, amount_paid, amount_remaining, nb_tranches, status, products(price)")
-    .eq("id", cotisation_id)
-    .single();
+      const isAssignedCommercial =
+        role === "commercial" &&
+        clientProfile?.assigned_commercial === userId;
 
-  if (cotFetchError || !cot) {
-    console.error("[Versement] Cotisation fetch error:", cotFetchError);
-    return NextResponse.json({ error: "Cotisation introuvable" }, { status: 404 });
-  }
+      if (!isAssignedCommercial) {
+        throw new ApiError(
+          403,
+          "Vous n'êtes pas autorisé à encaisser pour ce client",
+          "FORBIDDEN",
+        );
+      }
+    }
 
-  if (cot.status !== "active") {
-    return NextResponse.json({ error: "Cotisation non active" }, { status: 400 });
-  }
+    // Calcul des montants
+    const productData = cot.products as
+      | { price: number }
+      | { price: number }[]
+      | null;
+    const product = Array.isArray(productData)
+      ? (productData[0] ?? null)
+      : productData;
+    const price = product?.price ?? 0;
 
-  const price = (cot.products as any)?.price ?? 0;
-  const newAmountPaid = cot.amount_paid + amount;
-  const newAmountRemaining = Math.max(0, (cot.amount_remaining ?? price - cot.amount_paid) - amount);
-  const newNbTranches = (cot.nb_tranches ?? 1) + 1;
+    const currentRemaining =
+      cot.amount_remaining ?? price - cot.amount_paid;
 
-  if (amount > (cot.amount_remaining ?? price - cot.amount_paid)) {
-    return NextResponse.json({ error: "Le versement dépasse le montant restant" }, { status: 400 });
-  }
+    if (amount > currentRemaining) {
+      throw new ApiError(
+        400,
+        "Le versement dépasse le montant restant",
+        "INVALID_INPUT",
+      );
+    }
 
-  const isFull = newAmountRemaining <= 0;
-  const withdrawalCode = isFull
-    ? Math.random().toString().slice(2, 8)
-    : undefined;
+    const newAmountPaid = cot.amount_paid + amount;
+    const newAmountRemaining = Math.max(0, currentRemaining - amount);
+    const newNbTranches = (cot.nb_tranches ?? 0) + 1;
+    const isFull = newAmountRemaining <= 0;
+    const withdrawalCode = isFull
+      ? randomInt(100000, 1000000).toString()
+      : undefined;
 
-  // 1. Insert payment (with all required fields)
-  const { error: paymentError } = await admin
-    .from("payments")
-    .insert({
+    // 1. Enregistrer le paiement
+    const { error: paymentError } = await supabaseAdmin.from("payments").insert({
       cotisation_id,
       user_id: cot.user_id,
       amount,
@@ -83,44 +105,47 @@ export async function POST(req: NextRequest) {
       paid_at: new Date().toISOString(),
     });
 
-  if (paymentError) {
-    console.error("[Versement] Payment insert error:", paymentError);
-    return NextResponse.json({ error: `Erreur enregistrement paiement: ${paymentError.message}` }, { status: 500 });
+    if (paymentError) {
+      console.error("[Versement] payment insert:", paymentError);
+      throw new ApiError(500, "Erreur d'enregistrement", "INTERNAL");
+    }
+
+    // 2. Mettre à jour la cotisation
+    const { error: updateError } = await supabaseAdmin
+      .from("cotisations")
+      .update({
+        amount_paid: newAmountPaid,
+        amount_remaining: newAmountRemaining,
+        nb_tranches: newNbTranches,
+        status: isFull ? "completed" : "active",
+        ...(withdrawalCode ? { withdrawal_code: withdrawalCode } : {}),
+      })
+      .eq("id", cotisation_id);
+
+    if (updateError) {
+      console.error("[Versement] cotisation update:", updateError);
+      throw new ApiError(500, "Erreur de mise à jour", "INTERNAL");
+    }
+
+    // 3. Notifier le client (échec non bloquant)
+    const notif = isFull
+      ? {
+          user_id: cot.user_id,
+          title: "Cotisation complète !",
+          message: `Félicitations ! Votre cotisation est entièrement payée. Code de retrait : ${withdrawalCode}. Vous pouvez maintenant demander le retrait de votre article.`,
+          type: "success",
+        }
+      : {
+          user_id: cot.user_id,
+          title: "Versement enregistré",
+          message: `Un versement de ${amount.toLocaleString("fr-FR")} FCFA a été enregistré. Reste : ${newAmountRemaining.toLocaleString("fr-FR")} FCFA.`,
+          type: "info",
+        };
+
+    await supabaseAdmin.from("notifications").insert(notif);
+
+    return NextResponse.json({ ok: true, completed: isFull });
+  } catch (e) {
+    return handleApiError(e);
   }
-
-  // 2. Update cotisation
-  const { error: updateError } = await admin
-    .from("cotisations")
-    .update({
-      amount_paid: newAmountPaid,
-      amount_remaining: newAmountRemaining,
-      nb_tranches: newNbTranches,
-      status: isFull ? "completed" : "active",
-      ...(withdrawalCode ? { withdrawal_code: withdrawalCode } : {}),
-    })
-    .eq("id", cotisation_id);
-
-  if (updateError) {
-    console.error("[Versement] Cotisation update error:", updateError);
-    return NextResponse.json({ error: `Erreur mise à jour cotisation: ${updateError.message}` }, { status: 500 });
-  }
-
-  // 3. Notify client
-  const notif = isFull
-    ? {
-        user_id: cot.user_id,
-        title: "Cotisation complète !",
-        message: `Félicitations ! Votre cotisation est entièrement payée. Code de retrait : ${withdrawalCode}. Vous pouvez maintenant demander le retrait de votre article.`,
-        type: "success",
-      }
-    : {
-        user_id: cot.user_id,
-        title: "Versement enregistré",
-        message: `Un versement de ${amount.toLocaleString("fr-FR")} FCFA a été enregistré. Reste : ${newAmountRemaining.toLocaleString("fr-FR")} FCFA.`,
-        type: "info",
-      };
-
-  await admin.from("notifications").insert(notif);
-
-  return NextResponse.json({ ok: true, completed: isFull });
 }
