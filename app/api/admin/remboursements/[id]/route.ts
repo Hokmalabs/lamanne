@@ -1,60 +1,82 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import {
+  requireAuth,
+  requireRole,
+  checkOrigin,
+  validateInput,
+  handleApiError,
+  ApiError,
+} from "@/lib/api-security";
+
+const ParamsSchema = z.object({
+  id: z.string().uuid("ID de cotisation invalide"),
+});
+
+const BodySchema = z.object({
+  action: z.enum(["approve", "reject"], {
+    message: "Action invalide (approve ou reject attendu)",
+  }),
+});
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  // Vérifier que l'appelant est admin
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  try {
+    checkOrigin(request);
+    const ctx = await requireAuth(request);
+    requireRole(ctx, ["admin", "super_admin"]);
+    const { id } = validateInput(ParamsSchema, await params);
+    const { action } = validateInput(BodySchema, await request.json());
 
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const refundStatus = action === "approve" ? "approved" : "rejected";
+
+    const { error: updateError } = await supabaseAdmin
+      .from("cotisations")
+      .update({ refund_status: refundStatus })
+      .eq("id", id);
+
+    if (updateError) {
+      console.error("[remboursements PATCH] update:", updateError);
+      throw new ApiError(500, "Erreur de mise à jour", "INTERNAL");
+    }
+
+    // Notification au client (échec non bloquant)
+    const { data: cotisation } = await supabaseAdmin
+      .from("cotisations")
+      .select("user_id, refund_amount, products(name)")
+      .eq("id", id)
+      .single();
+
+    if (cotisation) {
+      const rawProduct = cotisation.products;
+      const product = Array.isArray(rawProduct)
+        ? ((rawProduct[0] as { name: string } | undefined) ?? null)
+        : (rawProduct as { name: string } | null);
+      const productName = product?.name ?? "votre article";
+
+      const notif =
+        action === "approve"
+          ? {
+              user_id: cotisation.user_id,
+              title: "Remboursement approuvé",
+              message: `Votre remboursement de ${cotisation.refund_amount} FCFA pour "${productName}" a été approuvé.`,
+              type: "success",
+            }
+          : {
+              user_id: cotisation.user_id,
+              title: "Remboursement refusé",
+              message: `Votre demande de remboursement pour "${productName}" a été refusée.`,
+              type: "warning",
+            };
+
+      await supabaseAdmin.from("notifications").insert(notif);
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    return handleApiError(e);
   }
-
-  const { data: profile } = await supabaseAdmin
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile || profile.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { action } = await request.json();
-  const refundStatus = action === "approve" ? "approved" : "rejected";
-
-  const { error } = await supabaseAdmin
-    .from("cotisations")
-    .update({ refund_status: refundStatus })
-    .eq("id", params.id);
-
-  if (error) {
-    console.error("[API remboursements] update error:", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  // Notification à l'utilisateur
-  const { data: cotisation } = await supabaseAdmin
-    .from("cotisations")
-    .select("user_id, refund_amount, products(name)")
-    .eq("id", params.id)
-    .single();
-
-  if (cotisation) {
-    const productName = (cotisation.products as any)?.name ?? "votre article";
-    await supabaseAdmin.from("notifications").insert({
-      user_id: cotisation.user_id,
-      title: action === "approve" ? "Remboursement approuvé" : "Remboursement refusé",
-      message: action === "approve"
-        ? `Votre remboursement de ${cotisation.refund_amount} FCFA pour "${productName}" a été approuvé.`
-        : `Votre demande de remboursement pour "${productName}" a été refusée.`,
-      type: action === "approve" ? "success" : "warning",
-    });
-  }
-
-  return NextResponse.json({ success: true });
 }
