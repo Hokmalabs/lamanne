@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import { formatCFA, formatDate } from "@/lib/utils";
+import { requirePageAuth } from "@/lib/api-security";
 
 const statusLabel: Record<string, string> = {
   active: "En cours",
@@ -19,14 +20,16 @@ const statusColor: Record<string, string> = {
 export default async function AdminCotisationsPage({
   searchParams,
 }: {
-  searchParams: { filter?: string };
+  searchParams: Promise<{ filter?: string }>;
 }) {
+  await requirePageAuth(["admin", "super_admin"]);
   const admin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const filter = searchParams?.filter;
+  const params = await searchParams;
+  const filter = params?.filter;
 
   let query = admin
     .from("cotisations")

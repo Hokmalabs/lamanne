@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import AddMemberButton from "./AddMemberButton";
 import EquipeTableWithSearch from "./EquipeTableWithSearch";
+import { requirePageAuth } from "@/lib/api-security";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -11,6 +12,7 @@ const admin = createClient(
 );
 
 export default async function AdminEquipePage() {
+  await requirePageAuth(["admin", "super_admin"]);
   const { data: team } = await admin
     .from("profiles")
     .select("id, full_name, phone, role, created_at, is_suspended")

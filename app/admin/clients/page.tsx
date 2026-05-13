@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import AddClientButton from "./AddClientButton";
 import ClientsTableWithSearch from "./ClientsTableWithSearch";
+import { requirePageAuth } from "@/lib/api-security";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -11,6 +12,7 @@ const admin = createClient(
 );
 
 export default async function AdminClientsPage() {
+  await requirePageAuth(["admin", "super_admin"]);
   const [
     { data: clients },
     { data: commercials },

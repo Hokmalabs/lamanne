@@ -5,20 +5,23 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { CheckCircle, PackageCheck } from "lucide-react";
 import { ValidateButton } from "./ValidateButton";
+import { requirePageAuth } from "@/lib/api-security";
 
 type Tab = "pending" | "done";
 
 export default async function AdminRetraitsPage({
   searchParams,
 }: {
-  searchParams: { tab?: string };
+  searchParams: Promise<{ tab?: string }>;
 }) {
+  await requirePageAuth(["admin", "super_admin"]);
   const admin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const tab = (searchParams?.tab as Tab) || "pending";
+  const params = await searchParams;
+  const tab = (params?.tab as Tab) || "pending";
 
   const [{ data: rawPending, error: pendingError }, { data: rawDone, error: doneError }] =
     await Promise.all([

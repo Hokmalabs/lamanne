@@ -17,6 +17,7 @@
 
 import { z } from "zod"
 import { NextResponse } from "next/server"
+import { redirect } from "next/navigation"
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { supabaseAdmin } from "@/lib/supabase-admin"
@@ -209,4 +210,81 @@ export function handleApiError(error: unknown): NextResponse {
     { error: "Erreur interne", code: "INTERNAL" as ApiErrorCode },
     { status: 500 },
   )
+}
+
+// ---------------------------------------------------------------------------
+// requirePageAuth — auth + rôle pour server components de pages protégées
+// ---------------------------------------------------------------------------
+
+/**
+ * Helper pour server components des pages protégées.
+ * Contrairement à requireAuth (qui throw ApiError), cette version effectue
+ * un redirect() côté serveur si l'authentification ou le rôle est invalide.
+ *
+ * À utiliser en tête de CHAQUE server component sensible, en plus du layout
+ * (defense in depth).
+ *
+ * Exemple :
+ *   export default async function AdminClientsPage() {
+ *     const ctx = await requirePageAuth(["admin", "super_admin"])
+ *     // ... logique métier avec ctx.user et ctx.profile garantis
+ *   }
+ */
+export async function requirePageAuth(allowed: Role[]): Promise<AuthContext> {
+  const cookieStore = await cookies()
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options),
+            )
+          } catch {
+            // Ignoré
+          }
+        },
+      },
+    },
+  )
+
+  const { data: { user }, error } = await supabase.auth.getUser()
+
+  if (error || !user) {
+    redirect("/login")
+  }
+
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("id, role, is_suspended, assigned_commercial")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile) {
+    redirect("/login")
+  }
+
+  if (profile.is_suspended) {
+    redirect("/login?reason=suspended")
+  }
+
+  if (!allowed.includes(profile.role as Role)) {
+    redirect("/dashboard")
+  }
+
+  return {
+    user: { id: user.id, email: user.email },
+    profile: {
+      id: profile.id,
+      role: profile.role as Role,
+      is_suspended: profile.is_suspended as boolean,
+      assigned_commercial: profile.assigned_commercial as string | null,
+    },
+  }
 }

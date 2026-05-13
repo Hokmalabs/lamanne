@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { ClipboardList, PackageCheck, RefreshCw, TrendingUp, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { formatCFA, formatDate } from "@/lib/utils";
+import { requirePageAuth } from "@/lib/api-security";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -51,6 +52,7 @@ function StatCard({
 }
 
 export default async function AdminOverviewPage() {
+  await requirePageAuth(["admin", "super_admin"]);
   const [
     { data: active },
     { data: collected },

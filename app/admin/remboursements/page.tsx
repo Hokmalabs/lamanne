@@ -2,8 +2,10 @@ export const dynamic = "force-dynamic";
 
 import { createClient } from "@supabase/supabase-js";
 import { RemboursementActions } from "./RemboursementActions";
+import { requirePageAuth } from "@/lib/api-security";
 
 export default async function AdminRemboursementsPage() {
+  await requirePageAuth(["admin", "super_admin"]);
   const admin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
