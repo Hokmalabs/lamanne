@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { apiPost, ApiClientError } from "@/lib/api-client";
 import { Category } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,23 +91,24 @@ export default function NouveauProduitPage() {
       }
     }
 
-    const { error: insertError } = await supabase.from("products").insert({
-      name: form.name,
-      description: form.description,
-      price: parseInt(form.price.replace(/\s/g, ""), 10),
-      category_id: form.category_id,
-      stock: parseInt(form.stock, 10),
-      is_lot: form.is_lot,
-      lot_details: form.is_lot ? form.lot_details : null,
-      min_tranches: form.min_tranches,
-      max_tranches: form.max_tranches,
-      delivery_days: form.delivery_days,
-      images: imageUrls,
-      is_active: true,
-    });
-
-    if (insertError) {
-      setError(`Erreur : ${insertError.message}`);
+    try {
+      await apiPost("/api/admin/produits", {
+        name: form.name,
+        description: form.description,
+        price: parseInt(form.price.replace(/\s/g, ""), 10),
+        category_id: form.category_id,
+        stock: parseInt(form.stock, 10),
+        is_lot: form.is_lot,
+        lot_details: form.is_lot ? form.lot_details : null,
+        min_tranches: form.min_tranches,
+        max_tranches: form.max_tranches,
+        delivery_days: form.delivery_days,
+        images: imageUrls,
+        is_active: true,
+      });
+    } catch (e) {
+      const message = e instanceof ApiClientError ? e.message : "Erreur réseau";
+      setError(message);
       setSaving(false);
       return;
     }

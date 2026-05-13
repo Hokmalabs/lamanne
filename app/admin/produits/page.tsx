@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { apiPatch, ApiClientError } from "@/lib/api-client";
 import { Product, Category } from "@/lib/types";
 import { formatCFA } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -28,12 +29,17 @@ export default function AdminProduitsPage() {
 
   const toggleActive = async (product: ProductWithCategory) => {
     setTogglingId(product.id);
-    await supabase
-      .from("products")
-      .update({ is_active: !product.is_active })
-      .eq("id", product.id);
-    await fetchProducts();
-    setTogglingId(null);
+    try {
+      await apiPatch(`/api/admin/produits/${product.id}`, {
+        is_active: !product.is_active,
+      });
+      await fetchProducts();
+    } catch (e) {
+      const message = e instanceof ApiClientError ? e.message : "Erreur réseau";
+      alert(`Impossible de modifier le produit : ${message}`);
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   return (

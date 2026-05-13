@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { apiPatch, ApiClientError } from "@/lib/api-client";
 import { Category, Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,9 +68,8 @@ export default function ModifierProduitPage() {
     setSaving(true);
     setError(null);
 
-    const { error: updateError } = await supabase
-      .from("products")
-      .update({
+    try {
+      await apiPatch(`/api/admin/produits/${id}`, {
         name: form.name,
         description: form.description,
         price: parseInt(form.price.replace(/\s/g, ""), 10),
@@ -81,11 +81,10 @@ export default function ModifierProduitPage() {
         max_tranches: form.max_tranches,
         delivery_days: form.delivery_days,
         is_active: form.is_active,
-      })
-      .eq("id", id);
-
-    if (updateError) {
-      setError(`Erreur : ${updateError.message}`);
+      });
+    } catch (e) {
+      const message = e instanceof ApiClientError ? e.message : "Erreur réseau";
+      setError(message);
       setSaving(false);
       return;
     }
