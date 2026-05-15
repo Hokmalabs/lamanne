@@ -10,7 +10,7 @@ interface Notification {
   title: string;
   message: string;
   type: "info" | "success" | "warning" | "error";
-  read: boolean;
+  is_read: boolean;
   created_at: string;
 }
 
@@ -32,7 +32,7 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
 
-  const unread = notifications.filter((n) => !n.read).length;
+  const unread = notifications.filter((n) => !n.is_read).length;
 
   useEffect(() => {
     let userId: string | null = null;
@@ -45,7 +45,7 @@ export default function NotificationBell() {
       // Initial fetch
       const { data } = await supabase
         .from("notifications")
-        .select("id, title, message, type, read, created_at")
+        .select("id, title, message, type, is_read, created_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(20);
@@ -78,15 +78,15 @@ export default function NotificationBell() {
   }, []);
 
   const markAllRead = async () => {
-    const ids = notifications.filter((n) => !n.read).map((n) => n.id);
+    const ids = notifications.filter((n) => !n.is_read).map((n) => n.id);
     if (ids.length === 0) return;
 
     await supabase
       .from("notifications")
-      .update({ read: true })
+      .update({ is_read: true })
       .in("id", ids);
 
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
   };
 
   return (
@@ -135,7 +135,7 @@ export default function NotificationBell() {
                     className={cn(
                       "px-4 py-3 border-l-4 transition-colors",
                       TYPE_STYLES[n.type] ?? TYPE_STYLES.info,
-                      !n.read && "bg-opacity-60"
+                      !n.is_read && "bg-opacity-60"
                     )}
                   >
                     <div className="flex items-start gap-2">
