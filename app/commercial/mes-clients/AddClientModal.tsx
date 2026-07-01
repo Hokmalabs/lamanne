@@ -24,14 +24,12 @@ export default function AddClientModal({ commercialId, fab }: { commercialId: st
     setLoading(true);
     setError(null);
 
-    const res = await fetch("/api/auth/register-phone", {
+    const res = await fetch("/api/commercial/register-client", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         full_name: fullName,
         phone,
-        role: "user",
-        assigned_commercial: commercialId,
       }),
     });
 

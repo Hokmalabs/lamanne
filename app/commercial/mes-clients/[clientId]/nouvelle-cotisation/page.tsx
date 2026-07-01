@@ -35,7 +35,7 @@ export default function NouvelleCoClientPage() {
     async function load() {
       const [{ data: profile }, { data: prods }] = await Promise.all([
         supabase.from("profiles").select("full_name").eq("id", clientId).single(),
-        supabase.from("products").select("id, name, price, max_tranches").eq("available", true).order("name"),
+        supabase.from("products").select("id, name, price, max_tranches").eq("is_active", true).order("name"),
       ]);
       setClientName(profile?.full_name ?? "Client");
       setProducts((prods ?? []) as Product[]);
