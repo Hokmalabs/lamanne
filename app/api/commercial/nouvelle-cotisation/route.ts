@@ -10,6 +10,8 @@ import {
   ApiError,
 } from "@/lib/api-security";
 
+export const dynamic = "force-dynamic";
+
 const schema = z.object({
   client_id: z.string().uuid("Identifiant client invalide"),
   product_id: z.string().uuid("Identifiant produit invalide"),

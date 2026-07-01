@@ -16,6 +16,7 @@ import {
   User,
   Users,
   ChevronDown,
+  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -65,6 +66,7 @@ export default function CommercialProductPage() {
 
   const firstPaymentNum = typeof firstPayment === "number" ? firstPayment : 0;
   const deadline = product ? addMonths(product.max_tranches) : null;
+  const canSubmit = mode === "client" && !!selectedClientId && firstPaymentNum >= 1000 && !!product && firstPaymentNum <= product.price;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -263,6 +265,15 @@ export default function CommercialProductPage() {
               )}
             </div>
 
+            {selectedClientId && clients.length > 0 && (
+              <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl px-3 py-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+                <span>
+                  Client sélectionné : <strong>{clients.find((c) => c.id === selectedClientId)?.full_name ?? ""}</strong>
+                </span>
+              </div>
+            )}
+
             {/* First payment */}
             <div className="space-y-1.5">
               <Label htmlFor="cc-amount">Premier versement (FCFA)</Label>
@@ -299,8 +310,11 @@ export default function CommercialProductPage() {
 
             <Button
               type="submit"
-              className="w-full h-12 text-base font-bold"
-              disabled={saving || clients.length === 0}
+              className={cn(
+                "w-full h-12 text-base font-bold transition-all",
+                canSubmit && !saving && "ring-2 ring-lamanne-accent/60 ring-offset-2 shadow-lg shadow-lamanne-primary/30"
+              )}
+              disabled={saving || clients.length === 0 || !canSubmit}
             >
               {saving
                 ? <span className="flex items-center gap-2"><span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Création...</span>
