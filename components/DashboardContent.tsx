@@ -51,11 +51,11 @@ function MetricCard({
       style={{ background: bg }}
     >
       <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: iconBg }}>
-        <Icon className="h-4.5 w-4.5 text-white h-5 w-5" />
+        <Icon className="h-5 w-5 text-white" />
       </div>
       <div>
         <p className="text-white/70 text-xs font-medium">{label}</p>
-        <p className="text-white font-black text-lg leading-tight truncate">{value}</p>
+        <p className="font-sora text-white font-black text-lg leading-tight truncate">{value}</p>
         <p className="text-white/50 text-[11px]">{sub}</p>
       </div>
     </div>
@@ -104,7 +104,7 @@ export default function DashboardContent({ showGreeting = true }: { showGreeting
       {showGreeting && (
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-black text-gray-900">
+            <h1 className="font-sora text-2xl font-black text-gray-900">
               Bonjour, {prenom} 👋
             </h1>
             <p className="text-gray-400 text-sm mt-0.5">Voici votre résumé</p>
@@ -112,7 +112,7 @@ export default function DashboardContent({ showGreeting = true }: { showGreeting
           {/* FAB on mobile, button on desktop */}
           <Link
             href="/catalogue"
-            className="w-11 h-11 rounded-2xl bg-[#0F5132] text-white flex items-center justify-center shadow-lg hover:bg-[#0F5132]/90 transition-all active:scale-95"
+            className="w-11 h-11 rounded-2xl bg-lamanne-primary text-white flex items-center justify-center shadow-lg hover:bg-lamanne-primary/90 transition-all active:scale-95"
           >
             <Plus className="h-5 w-5" />
           </Link>
@@ -152,7 +152,7 @@ export default function DashboardContent({ showGreeting = true }: { showGreeting
       {/* Prêt à retirer */}
       {!loading && completed.length > 0 && (
         <div>
-          <h2 className="text-base font-bold text-[#2D9B6F] mb-3 flex items-center gap-2">
+          <h2 className="font-sora text-base font-bold text-[#2D9B6F] mb-3 flex items-center gap-2">
             <CheckCircle className="h-4 w-4" />
             Prêt à retirer ({completed.length})
           </h2>
@@ -168,9 +168,9 @@ export default function DashboardContent({ showGreeting = true }: { showGreeting
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-900 text-sm truncate">{c.product.name}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Code :{" "}
-                    <span className="font-black text-[#2D9B6F] tracking-widest">
+                  <p className="text-xs text-gray-500 mt-1">
+                    Code de retrait{" "}
+                    <span className="font-sora font-black text-base text-lamanne-primary tracking-widest bg-lamanne-primary/5 rounded-lg px-2 py-0.5 inline-block">
                       {c.withdrawal_code}
                     </span>
                   </p>
@@ -189,10 +189,10 @@ export default function DashboardContent({ showGreeting = true }: { showGreeting
       {/* Cotisations actives */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-bold text-gray-900">Cotisations actives</h2>
+          <h2 className="font-sora text-base font-bold text-gray-900">Cotisations actives</h2>
           <Link
             href="/cotisations"
-            className="text-sm text-[#F2A900] hover:underline font-medium"
+            className="text-sm text-lamanne-accent hover:underline font-medium"
           >
             Voir tout
           </Link>
@@ -209,12 +209,12 @@ export default function DashboardContent({ showGreeting = true }: { showGreeting
             className="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center"
           >
             <div className="w-14 h-14 bg-[#FEF3D7] rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <ShoppingBag className="h-7 w-7 text-[#F2A900]" />
+              <ShoppingBag className="h-7 w-7 text-lamanne-accent" />
             </div>
             <h3 className="font-bold text-gray-700 mb-1">Aucune cotisation en cours</h3>
             <p className="text-gray-400 text-sm mb-5">Commencez à cotiser depuis le catalogue.</p>
             <Link href="/catalogue">
-              <button className="bg-[#0F5132] text-white px-5 py-2.5 rounded-xl text-sm font-bold inline-flex items-center gap-2">
+              <button className="bg-lamanne-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold inline-flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 Explorer le catalogue
               </button>
@@ -226,18 +226,16 @@ export default function DashboardContent({ showGreeting = true }: { showGreeting
               const deadline = addMonths(cotisation.created_at, cotisation.product.max_tranches);
               const days = daysUntil(deadline);
               const progress = Math.round((cotisation.amount_paid / cotisation.total_price) * 100);
-              const progressColor =
-                progress >= 70 ? "#2D9B6F" : progress >= 30 ? "#F5A623" : "#E53E3E";
               return (
                 <Link key={cotisation.id} href={`/cotisations/${cotisation.id}`}>
                   <div className="bg-white rounded-2xl p-4 animate-fade-in card-hover" style={{ boxShadow: "var(--shadow-sm)" }}>
                     <div className="flex items-start justify-between gap-2 mb-3">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <div className="w-12 h-12 rounded-xl bg-[#FEF3D7] flex items-center justify-center flex-shrink-0">
-                          <ShoppingBag className="h-5 w-5 text-[#F2A900]" />
+                          <ShoppingBag className="h-5 w-5 text-lamanne-accent" />
                         </div>
                         <div className="min-w-0">
-                          <p className="font-semibold text-gray-900 text-sm leading-snug truncate">
+                          <p className="font-sora font-semibold text-gray-900 text-sm leading-snug truncate">
                             {cotisation.product.name}
                           </p>
                           <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
@@ -266,7 +264,7 @@ export default function DashboardContent({ showGreeting = true }: { showGreeting
                       <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full progress-bar-fill"
-                          style={{ width: `${Math.min(100, progress)}%`, background: progressColor }}
+                          style={{ width: `${Math.min(100, progress)}%` }}
                         />
                       </div>
                       <span className="text-xs font-bold text-gray-700 w-9 text-right">{progress}%</span>
@@ -292,17 +290,17 @@ export default function DashboardContent({ showGreeting = true }: { showGreeting
 
       {/* Accès rapide */}
       <div>
-        <h2 className="text-base font-bold text-gray-900 mb-3">Accès rapide</h2>
+        <h2 className="font-sora text-base font-bold text-gray-900 mb-3">Accès rapide</h2>
         <div className="grid grid-cols-2 gap-3">
           <Link href="/catalogue">
-            <div className="bg-[#0F5132] rounded-2xl p-5 text-white hover:opacity-90 transition-opacity cursor-pointer active:scale-95">
+            <div className="bg-lamanne-primary rounded-2xl p-5 text-white hover:opacity-90 transition-opacity cursor-pointer active:scale-95">
               <ShoppingBag className="h-6 w-6 mb-3 opacity-80" />
               <p className="font-bold text-sm">Explorer</p>
               <p className="text-white/50 text-xs">Le catalogue</p>
             </div>
           </Link>
           <Link href="/historique">
-            <div className="bg-[#F2A900] rounded-2xl p-5 text-white hover:opacity-90 transition-opacity cursor-pointer active:scale-95">
+            <div className="bg-lamanne-accent rounded-2xl p-5 text-white hover:opacity-90 transition-opacity cursor-pointer active:scale-95">
               <Clock className="h-6 w-6 mb-3 opacity-80" />
               <p className="font-bold text-sm">Historique</p>
               <p className="text-white/50 text-xs">Mes paiements</p>
