@@ -96,8 +96,8 @@ export default function EncaissementsContent({
               {/* Client + product */}
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#E8F1FB] flex items-center justify-center flex-shrink-0">
-                    <span className="text-[#0D3B8C] font-bold text-sm">
+                  <div className="w-10 h-10 rounded-full bg-[#FEF3D7] flex items-center justify-center flex-shrink-0">
+                    <span className="text-[#0F5132] font-bold text-sm">
                       {cot.client_name.charAt(0).toUpperCase()}
                     </span>
                   </div>
@@ -108,7 +108,7 @@ export default function EncaissementsContent({
                 </div>
                 <div className="text-right flex-shrink-0">
                   <p className="text-xs text-gray-400">Reste</p>
-                  <p className="font-black text-[#0D3B8C] text-sm">{formatCFA(remaining)}</p>
+                  <p className="font-black text-[#0F5132] text-sm">{formatCFA(remaining)}</p>
                 </div>
               </div>
 
@@ -143,7 +143,7 @@ export default function EncaissementsContent({
                 className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${
                   isOpen
                     ? "bg-gray-100 text-gray-600"
-                    : "bg-[#0D3B8C] text-white hover:bg-[#0D3B8C]/90"
+                    : "bg-[#0F5132] text-white hover:bg-[#0F5132]/90"
                 }`}
               >
                 {isOpen ? (

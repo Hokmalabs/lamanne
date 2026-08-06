@@ -46,7 +46,7 @@ export default function CommercialProfilPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
-        <div className="h-6 w-6 border-2 border-[#0D3B8C] border-t-transparent rounded-full animate-spin" />
+        <div className="h-6 w-6 border-2 border-[#0F5132] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -66,7 +66,7 @@ export default function CommercialProfilPage() {
       </div>
 
       {/* Avatar + name */}
-      <div className="bg-[#0D3B8C] rounded-2xl p-6 flex items-center gap-4" style={{ boxShadow: "var(--shadow-sm)" }}>
+      <div className="bg-[#0F5132] rounded-2xl p-6 flex items-center gap-4" style={{ boxShadow: "var(--shadow-sm)" }}>
         <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
           <span className="text-white font-black text-xl">{initials}</span>
         </div>
@@ -83,8 +83,8 @@ export default function CommercialProfilPage() {
       <div className="bg-white rounded-2xl overflow-hidden divide-y divide-gray-50" style={{ boxShadow: "var(--shadow-sm)" }}>
         {profile?.phone && (
           <div className="flex items-center gap-3 px-5 py-4">
-            <div className="w-9 h-9 rounded-xl bg-[#E8F1FB] flex items-center justify-center flex-shrink-0">
-              <Phone className="h-4 w-4 text-[#0D3B8C]" />
+            <div className="w-9 h-9 rounded-xl bg-[#FEF3D7] flex items-center justify-center flex-shrink-0">
+              <Phone className="h-4 w-4 text-[#0F5132]" />
             </div>
             <div>
               <p className="text-xs text-gray-400">Téléphone</p>
@@ -94,8 +94,8 @@ export default function CommercialProfilPage() {
         )}
         {profile?.email && !profile.email.startsWith("phone_") && (
           <div className="flex items-center gap-3 px-5 py-4">
-            <div className="w-9 h-9 rounded-xl bg-[#E8F1FB] flex items-center justify-center flex-shrink-0">
-              <Mail className="h-4 w-4 text-[#0D3B8C]" />
+            <div className="w-9 h-9 rounded-xl bg-[#FEF3D7] flex items-center justify-center flex-shrink-0">
+              <Mail className="h-4 w-4 text-[#0F5132]" />
             </div>
             <div>
               <p className="text-xs text-gray-400">Email</p>
@@ -104,8 +104,8 @@ export default function CommercialProfilPage() {
           </div>
         )}
         <div className="flex items-center gap-3 px-5 py-4">
-          <div className="w-9 h-9 rounded-xl bg-[#E8F1FB] flex items-center justify-center flex-shrink-0">
-            <User className="h-4 w-4 text-[#0D3B8C]" />
+          <div className="w-9 h-9 rounded-xl bg-[#FEF3D7] flex items-center justify-center flex-shrink-0">
+            <User className="h-4 w-4 text-[#0F5132]" />
           </div>
           <div>
             <p className="text-xs text-gray-400">Rôle</p>

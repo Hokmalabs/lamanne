@@ -39,7 +39,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           style={{ background: "#1a1f36" }}
         >
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-[#0D3B8C] rounded-xl flex items-center justify-center">
+            <div className="w-8 h-8 bg-[#0F5132] rounded-xl flex items-center justify-center">
               <span className="text-white font-black text-xs">LM</span>
             </div>
             <span className="text-white font-black text-base tracking-wide">Admin</span>

@@ -13,7 +13,7 @@ const admin = createClient(
 );
 
 const statusColors: Record<string, string> = {
-  active:    "bg-[#E8F1FB] text-[#0D3B8C]",
+  active:    "bg-[#FEF3D7] text-[#0F5132]",
   completed: "bg-green-100 text-green-700",
   cancelled: "bg-red-100 text-red-600",
 };
@@ -90,11 +90,11 @@ export default async function AdminOverviewPage() {
       {/* Stats 2×2 grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard icon={ClipboardList} label="Cotisations actives" value={active?.length ?? 0}
-          bg="#0D3B8C" href="/admin/cotisations" />
+          bg="#0F5132" href="/admin/cotisations" />
         <StatCard icon={TrendingUp} label="Total collecté" value={formatCFA(totalCollected)}
           bg="#2D9B6F" />
         <StatCard icon={PackageCheck} label="Retraits en attente" value={withdrawals?.length ?? 0}
-          bg="#378ADD" href="/admin/retraits" />
+          bg="#F2A900" href="/admin/retraits" />
         <StatCard icon={RefreshCw} label="Remboursements" value={refunds?.length ?? 0}
           bg="#F5A623" href="/admin/remboursements" />
       </div>
@@ -103,7 +103,7 @@ export default async function AdminOverviewPage() {
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="font-bold text-gray-900">Dernières cotisations</h2>
-          <Link href="/admin/cotisations" className="text-sm text-[#378ADD] hover:underline font-medium">
+          <Link href="/admin/cotisations" className="text-sm text-[#F2A900] hover:underline font-medium">
             Voir tout
           </Link>
         </div>
@@ -117,8 +117,8 @@ export default async function AdminOverviewPage() {
           {recent.map((c) => (
             <div key={c.id} className="px-5 py-3.5 flex items-center gap-3">
               {/* Avatar initiales */}
-              <div className="w-9 h-9 rounded-full bg-[#E8F1FB] flex items-center justify-center flex-shrink-0">
-                <span className="text-[#0D3B8C] font-bold text-xs">
+              <div className="w-9 h-9 rounded-full bg-[#FEF3D7] flex items-center justify-center flex-shrink-0">
+                <span className="text-[#0F5132] font-bold text-xs">
                   {(c.profile as any)?.full_name?.charAt(0).toUpperCase() ?? "?"}
                 </span>
               </div>

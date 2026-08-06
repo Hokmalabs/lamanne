@@ -185,9 +185,9 @@ export default async function CommercialStatsPage() {
   const progression = objectif > 0 ? Math.min(Math.round((totalMois / objectif) * 100), 100) : 0;
 
   const stats = [
-    { label: "Clients assignés",   value: clientIds.length,         icon: Users,       bg: "#0D3B8C" },
+    { label: "Clients assignés",   value: clientIds.length,         icon: Users,       bg: "#0F5132" },
     { label: "Encaissé ce mois",   value: formatCFA(totalMois),     icon: Wallet,      bg: "#2D9B6F" },
-    { label: "Clients actifs",     value: clientsActifs,            icon: TrendingUp,  bg: "#378ADD" },
+    { label: "Clients actifs",     value: clientsActifs,            icon: TrendingUp,  bg: "#F2A900" },
     { label: "Taux complétion",    value: `${tauxCompletion}%`,     icon: Target,      bg: "#F5A623" },
   ];
 

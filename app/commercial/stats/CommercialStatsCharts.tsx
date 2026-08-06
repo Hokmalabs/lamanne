@@ -15,7 +15,7 @@ function CustomTooltip({ active, payload, label }: any) {
     return (
       <div className="bg-white rounded-xl shadow-lg border border-gray-100 px-3 py-2">
         <p className="text-xs text-gray-500">{label}</p>
-        <p className="font-black text-[#0D3B8C] text-sm">{formatCFA(payload[0].value)}</p>
+        <p className="font-black text-[#0F5132] text-sm">{formatCFA(payload[0].value)}</p>
       </div>
     );
   }
@@ -63,7 +63,7 @@ export default function CommercialStatsCharts({
                 {chartData.map((entry, i) => (
                   <Cell
                     key={i}
-                    fill={entry.montant === maxVal && entry.montant > 0 ? "#0D3B8C" : "#E8F1FB"}
+                    fill={entry.montant === maxVal && entry.montant > 0 ? "#0F5132" : "#FEF3D7"}
                   />
                 ))}
               </Bar>
@@ -75,7 +75,7 @@ export default function CommercialStatsCharts({
       {/* Monthly target */}
       <div className="bg-white rounded-2xl p-5" style={{ boxShadow: "var(--shadow-sm)" }}>
         <div className="flex items-center gap-2 mb-3">
-          <Target className="h-5 w-5 text-[#0D3B8C]" />
+          <Target className="h-5 w-5 text-[#0F5132]" />
           <h2 className="font-bold text-gray-900">Objectif mensuel</h2>
         </div>
         {objectif > 0 ? (
@@ -87,7 +87,7 @@ export default function CommercialStatsCharts({
               </div>
               <span
                 className="text-lg font-black"
-                style={{ color: progression >= 100 ? "#2D9B6F" : progression >= 50 ? "#F5A623" : "#0D3B8C" }}
+                style={{ color: progression >= 100 ? "#2D9B6F" : progression >= 50 ? "#F5A623" : "#0F5132" }}
               >
                 {progression}%
               </span>
@@ -97,7 +97,7 @@ export default function CommercialStatsCharts({
                 className="h-full rounded-full transition-all"
                 style={{
                   width: `${progression}%`,
-                  background: progression >= 100 ? "#2D9B6F" : progression >= 50 ? "#F5A623" : "#0D3B8C",
+                  background: progression >= 100 ? "#2D9B6F" : progression >= 50 ? "#F5A623" : "#0F5132",
                 }}
               />
             </div>

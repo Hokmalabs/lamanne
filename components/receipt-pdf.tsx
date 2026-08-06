@@ -13,12 +13,12 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     paddingBottom: 20,
     borderBottomWidth: 2,
-    borderBottomColor: "#0D3B8C",
+    borderBottomColor: "#0F5132",
   },
   logo: {
     fontSize: 22,
     fontFamily: "Helvetica-Bold",
-    color: "#0D3B8C",
+    color: "#0F5132",
   },
   logoSub: {
     fontSize: 9,
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     color: "#111827",
   },
   amountBox: {
-    backgroundColor: "#0D3B8C",
+    backgroundColor: "#0F5132",
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,

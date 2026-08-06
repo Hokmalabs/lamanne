@@ -43,7 +43,7 @@ export default function ClientsTableWithSearch({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Rechercher par nom ou téléphone…"
-          className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0D3B8C]/20"
+          className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0F5132]/20"
           style={{ fontSize: "16px" }}
         />
       </div>
@@ -63,8 +63,8 @@ export default function ClientsTableWithSearch({
               return (
                 <div key={client.id} className="bg-white rounded-2xl p-4" style={{ boxShadow: "var(--shadow-sm)" }}>
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-[#E8F1FB] flex items-center justify-center flex-shrink-0">
-                      <span className="text-[#0D3B8C] font-bold text-sm">
+                    <div className="w-10 h-10 rounded-full bg-[#FEF3D7] flex items-center justify-center flex-shrink-0">
+                      <span className="text-[#0F5132] font-bold text-sm">
                         {client.full_name?.charAt(0).toUpperCase() ?? "?"}
                       </span>
                     </div>
@@ -72,7 +72,7 @@ export default function ClientsTableWithSearch({
                       <p className="font-bold text-gray-900 truncate">{client.full_name ?? "—"}</p>
                       <p className="text-xs text-gray-400">{client.phone ?? "—"}</p>
                     </div>
-                    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${cotCount > 0 ? "bg-[#E8F1FB] text-[#0D3B8C]" : "bg-gray-100 text-gray-500"}`}>
+                    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${cotCount > 0 ? "bg-[#FEF3D7] text-[#0F5132]" : "bg-gray-100 text-gray-500"}`}>
                       <ClipboardList className="h-3 w-3" />{cotCount}
                     </span>
                   </div>
@@ -105,8 +105,8 @@ export default function ClientsTableWithSearch({
                     <tr key={client.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[#E8F1FB] flex items-center justify-center flex-shrink-0">
-                            <span className="text-[#0D3B8C] font-bold text-xs">
+                          <div className="w-8 h-8 rounded-full bg-[#FEF3D7] flex items-center justify-center flex-shrink-0">
+                            <span className="text-[#0F5132] font-bold text-xs">
                               {client.full_name?.charAt(0).toUpperCase() ?? "?"}
                             </span>
                           </div>

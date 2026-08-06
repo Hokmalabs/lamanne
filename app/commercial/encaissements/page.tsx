@@ -200,7 +200,7 @@ export default async function EncaissementsPage() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-4">
         <div
-          className="bg-[#0D3B8C] text-white rounded-2xl p-5"
+          className="bg-[#0F5132] text-white rounded-2xl p-5"
           style={{ boxShadow: "var(--shadow-sm)" }}
         >
           <Wallet className="h-5 w-5 mb-2 opacity-70" />
@@ -219,7 +219,7 @@ export default async function EncaissementsPage() {
           className="bg-white rounded-2xl p-5"
           style={{ boxShadow: "var(--shadow-sm)" }}
         >
-          <CalendarDays className="h-5 w-5 mb-2 text-[#378ADD]" />
+          <CalendarDays className="h-5 w-5 mb-2 text-[#F2A900]" />
           <p className="text-2xl font-black text-gray-900">{formatCFA(totalWeek)}</p>
           <p className="text-gray-500 text-sm mt-0.5">Cette semaine</p>
         </div>
@@ -245,8 +245,8 @@ export default async function EncaissementsPage() {
             <div className="md:hidden divide-y divide-gray-50">
               {recentPayments.map((p) => (
                 <div key={p.id} className="flex items-center gap-3 px-4 py-3">
-                  <div className="w-9 h-9 rounded-full bg-[#E8F1FB] flex items-center justify-center flex-shrink-0">
-                    <span className="text-[#0D3B8C] font-bold text-xs">
+                  <div className="w-9 h-9 rounded-full bg-[#FEF3D7] flex items-center justify-center flex-shrink-0">
+                    <span className="text-[#0F5132] font-bold text-xs">
                       {p.client_name.charAt(0).toUpperCase()}
                     </span>
                   </div>
@@ -255,7 +255,7 @@ export default async function EncaissementsPage() {
                     <p className="text-xs text-gray-400 truncate">{p.product_name}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="font-black text-[#0D3B8C] text-sm">{formatCFA(p.amount)}</p>
+                    <p className="font-black text-[#0F5132] text-sm">{formatCFA(p.amount)}</p>
                     <p className="text-xs text-gray-400">
                       {new Date(p.paid_at).toLocaleDateString("fr-FR", {
                         day: "numeric",
@@ -296,7 +296,7 @@ export default async function EncaissementsPage() {
                         minute: "2-digit",
                       })}
                     </td>
-                    <td className="px-5 py-3 text-right font-black text-[#0D3B8C]">
+                    <td className="px-5 py-3 text-right font-black text-[#0F5132]">
                       {formatCFA(p.amount)}
                     </td>
                   </tr>

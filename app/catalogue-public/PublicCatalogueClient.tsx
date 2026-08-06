@@ -36,7 +36,7 @@ export default function PublicCatalogueClient({
             placeholder="Rechercher un article…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 bg-white rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#0D3B8C]/20 transition-all"
+            className="w-full pl-11 pr-4 py-3 bg-white rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#0F5132]/20 transition-all"
             style={{ boxShadow: "var(--shadow-sm)", fontSize: "16px" }}
           />
         </div>
@@ -50,7 +50,7 @@ export default function PublicCatalogueClient({
               onClick={() => setActiveCategory("all")}
               className={cn(
                 "flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all",
-                activeCategory === "all" ? "bg-[#0D3B8C] text-white" : "bg-white text-gray-500 border border-gray-200"
+                activeCategory === "all" ? "bg-[#0F5132] text-white" : "bg-white text-gray-500 border border-gray-200"
               )}
             >
               Tout
@@ -61,7 +61,7 @@ export default function PublicCatalogueClient({
                 onClick={() => setActiveCategory(cat.id)}
                 className={cn(
                   "flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all",
-                  activeCategory === cat.id ? "bg-[#0D3B8C] text-white" : "bg-white text-gray-500 border border-gray-200"
+                  activeCategory === cat.id ? "bg-[#0F5132] text-white" : "bg-white text-gray-500 border border-gray-200"
                 )}
               >
                 {cat.name}
@@ -114,7 +114,7 @@ export default function PublicCatalogueClient({
                 </div>
                 <div className="p-3">
                   <p className="text-sm font-bold text-gray-900 line-clamp-2 leading-snug mb-1">{p.name}</p>
-                  <p className="text-base font-black text-[#0D3B8C]">{formatCFA(p.price)}</p>
+                  <p className="text-base font-black text-[#0F5132]">{formatCFA(p.price)}</p>
                   <p className="text-xs text-gray-400 mt-0.5">≈ {formatCFA(dailyCost)}/jour</p>
                 </div>
               </Link>

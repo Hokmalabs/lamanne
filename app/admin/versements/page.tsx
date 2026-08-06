@@ -208,7 +208,7 @@ export default async function AdminVersementsPage({
           style={{ boxShadow: "var(--shadow-sm)" }}
         >
           <p className="text-xs text-gray-400">Total encaissé (filtré)</p>
-          <p className="text-2xl font-black text-[#0D3B8C] mt-1">
+          <p className="text-2xl font-black text-[#0F5132] mt-1">
             {formatCFA(totalAmount)}
           </p>
         </div>
@@ -234,7 +234,7 @@ export default async function AdminVersementsPage({
             href={buildHref({ period: value })}
             className={`px-4 py-2 rounded-full text-sm font-semibold border transition-colors ${
               period === value
-                ? "bg-[#0D3B8C] text-white border-[#0D3B8C]"
+                ? "bg-[#0F5132] text-white border-[#0F5132]"
                 : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
             }`}
           >
@@ -314,7 +314,7 @@ export default async function AdminVersementsPage({
         <div className="flex gap-2">
           <button
             type="submit"
-            className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#0D3B8C] text-white hover:opacity-90"
+            className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#0F5132] text-white hover:opacity-90"
           >
             Appliquer
           </button>
@@ -365,7 +365,7 @@ export default async function AdminVersementsPage({
                 <p className="text-sm text-gray-600">{p.productName ?? "—"}</p>
                 <div className="flex items-center justify-between mt-3">
                   <div>
-                    <p className="text-lg font-black text-[#0D3B8C]">
+                    <p className="text-lg font-black text-[#0F5132]">
                       {formatCFA(p.amount)}
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">
@@ -441,7 +441,7 @@ export default async function AdminVersementsPage({
                     <td className="px-5 py-3.5 text-gray-700">
                       {p.productName ?? "—"}
                     </td>
-                    <td className="px-5 py-3.5 font-bold text-[#0D3B8C]">
+                    <td className="px-5 py-3.5 font-bold text-[#0F5132]">
                       {formatCFA(p.amount)}
                     </td>
                     <td className="px-5 py-3.5 text-gray-700">
@@ -489,7 +489,7 @@ export default async function AdminVersementsPage({
                 {page < totalPages && (
                   <Link
                     href={buildHref({ page: String(page + 1) })}
-                    className="px-4 py-1.5 rounded-xl text-sm font-semibold bg-[#0D3B8C] text-white hover:opacity-90"
+                    className="px-4 py-1.5 rounded-xl text-sm font-semibold bg-[#0F5132] text-white hover:opacity-90"
                   >
                     Suivant
                   </Link>

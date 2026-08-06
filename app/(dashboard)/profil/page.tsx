@@ -279,7 +279,7 @@ export default function ProfilPage() {
             Partagez votre code avec vos proches. Ils bénéficient d&apos;un accueil prioritaire !
           </p>
           <div className="flex items-center gap-2">
-            <div className="flex-1 bg-[#F8F9FC] rounded-xl px-4 py-3 font-black text-xl text-[#0D3B8C] tracking-widest text-center">
+            <div className="flex-1 bg-[#F8F9FC] rounded-xl px-4 py-3 font-black text-xl text-[#0F5132] tracking-widest text-center">
               {profile.referral_code}
             </div>
             <button
@@ -288,7 +288,7 @@ export default function ProfilPage() {
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
               }}
-              className="p-3 rounded-xl bg-[#E8F1FB] text-[#0D3B8C] hover:bg-[#0D3B8C]/20 transition-colors"
+              className="p-3 rounded-xl bg-[#FEF3D7] text-[#0F5132] hover:bg-[#0F5132]/20 transition-colors"
             >
               {copied ? <CheckCheck className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
             </button>

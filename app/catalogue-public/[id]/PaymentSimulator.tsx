@@ -22,7 +22,7 @@ export default function PaymentSimulator({
   return (
     <div className="bg-white rounded-2xl p-5" style={{ boxShadow: "var(--shadow-sm)" }}>
       <div className="flex items-center gap-2 mb-4">
-        <Calculator className="h-5 w-5 text-[#0D3B8C]" />
+        <Calculator className="h-5 w-5 text-[#0F5132]" />
         <h2 className="font-bold text-gray-900">Simulateur de paiement</h2>
       </div>
 
@@ -31,7 +31,7 @@ export default function PaymentSimulator({
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-semibold text-gray-700">Premier versement</label>
-            <span className="font-black text-[#0D3B8C]">{formatCFA(firstPayment)}</span>
+            <span className="font-black text-[#0F5132]">{formatCFA(firstPayment)}</span>
           </div>
           <input
             type="range"
@@ -40,7 +40,7 @@ export default function PaymentSimulator({
             step={1000}
             value={firstPayment}
             onChange={(e) => setFirstPayment(Number(e.target.value))}
-            className="w-full accent-[#0D3B8C]"
+            className="w-full accent-[#0F5132]"
           />
           <div className="flex justify-between text-xs text-gray-400 mt-1">
             <span>1 000 FCFA</span>
@@ -52,7 +52,7 @@ export default function PaymentSimulator({
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-semibold text-gray-700">Durée souhaitée</label>
-            <span className="font-black text-[#0D3B8C]">{months} mois</span>
+            <span className="font-black text-[#0F5132]">{months} mois</span>
           </div>
           <input
             type="range"
@@ -61,7 +61,7 @@ export default function PaymentSimulator({
             step={1}
             value={months}
             onChange={(e) => setMonths(Number(e.target.value))}
-            className="w-full accent-[#0D3B8C]"
+            className="w-full accent-[#0F5132]"
           />
           <div className="flex justify-between text-xs text-gray-400 mt-1">
             <span>1 mois</span>
@@ -79,15 +79,15 @@ export default function PaymentSimulator({
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="bg-white rounded-xl p-3" style={{ boxShadow: "var(--shadow-sm)" }}>
               <p className="text-xs text-gray-400 mb-1">Par jour</p>
-              <p className="font-black text-[#0D3B8C] text-sm">{formatCFA(dailyNeeded)}</p>
+              <p className="font-black text-[#0F5132] text-sm">{formatCFA(dailyNeeded)}</p>
             </div>
             <div className="bg-white rounded-xl p-3" style={{ boxShadow: "var(--shadow-sm)" }}>
               <p className="text-xs text-gray-400 mb-1">Par semaine</p>
-              <p className="font-black text-[#0D3B8C] text-sm">{formatCFA(weeklyNeeded)}</p>
+              <p className="font-black text-[#0F5132] text-sm">{formatCFA(weeklyNeeded)}</p>
             </div>
             <div className="bg-white rounded-xl p-3" style={{ boxShadow: "var(--shadow-sm)" }}>
               <p className="text-xs text-gray-400 mb-1">Par mois</p>
-              <p className="font-black text-[#0D3B8C] text-sm">{formatCFA(monthlyNeeded)}</p>
+              <p className="font-black text-[#0F5132] text-sm">{formatCFA(monthlyNeeded)}</p>
             </div>
           </div>
           <p className="text-xs text-center text-gray-400">

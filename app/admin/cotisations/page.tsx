@@ -12,7 +12,7 @@ const statusLabel: Record<string, string> = {
 };
 
 const statusColor: Record<string, string> = {
-  active: "bg-[#E8F1FB] text-[#0D3B8C]",
+  active: "bg-[#FEF3D7] text-[#0F5132]",
   completed: "bg-green-100 text-green-700",
   cancelled: "bg-red-100 text-red-600",
 };
@@ -72,7 +72,7 @@ export default async function AdminCotisationsPage({
             href={value !== "all" ? `/admin/cotisations?filter=${value}` : "/admin/cotisations"}
             className={`px-4 py-2 rounded-full text-sm font-semibold border transition-colors ${
               (filter ?? "all") === value
-                ? "bg-[#0D3B8C] text-white border-[#0D3B8C]"
+                ? "bg-[#0F5132] text-white border-[#0F5132]"
                 : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
             }`}
           >
@@ -105,7 +105,7 @@ export default async function AdminCotisationsPage({
                   </div>
                   <div className="flex items-center gap-2 mb-2">
                     <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full bg-[#0D3B8C]" style={{ width: `${Math.min(100, progress)}%` }} />
+                      <div className="h-full rounded-full bg-[#0F5132]" style={{ width: `${Math.min(100, progress)}%` }} />
                     </div>
                     <span className="text-xs font-semibold text-gray-600 w-9 text-right">{progress}%</span>
                   </div>
@@ -144,7 +144,7 @@ export default async function AdminCotisationsPage({
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
                           <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full bg-[#0D3B8C]" style={{ width: `${Math.min(100, progress)}%` }} />
+                            <div className="h-full rounded-full bg-[#0F5132]" style={{ width: `${Math.min(100, progress)}%` }} />
                           </div>
                           <span className="text-xs text-gray-600">{progress}%</span>
                         </div>

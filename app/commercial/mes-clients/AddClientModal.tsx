@@ -53,7 +53,7 @@ export default function AddClientModal({ commercialId, fab }: { commercialId: st
       {fab ? (
         <button
           onClick={() => setOpen(true)}
-          className="w-14 h-14 rounded-full bg-[#0D3B8C] text-white flex items-center justify-center shadow-lg hover:bg-[#0D3B8C]/90 transition-all active:scale-95"
+          className="w-14 h-14 rounded-full bg-[#0F5132] text-white flex items-center justify-center shadow-lg hover:bg-[#0F5132]/90 transition-all active:scale-95"
           aria-label="Ajouter un client"
         >
           <UserPlus className="h-6 w-6" />

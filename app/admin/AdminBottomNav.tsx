@@ -54,7 +54,7 @@ export default function AdminBottomNav({ isSuperAdmin }: { isSuperAdmin: boolean
                 <span
                   className={cn(
                     "flex items-center justify-center w-10 h-7 rounded-xl transition-all",
-                    isActive ? "bg-[#0D3B8C]" : ""
+                    isActive ? "bg-[#0F5132]" : ""
                   )}
                 >
                   <Icon

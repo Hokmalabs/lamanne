@@ -37,7 +37,7 @@ export default function ClientsListWithSearch({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Rechercher par nom ou téléphone…"
-          className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0D3B8C]/20 bg-white"
+          className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0F5132]/20 bg-white"
           style={{ fontSize: "16px" }}
         />
       </div>
@@ -59,8 +59,8 @@ export default function ClientsListWithSearch({
                 className="flex items-center gap-3 bg-white rounded-2xl p-4 active:scale-98 transition-transform"
                 style={{ boxShadow: "var(--shadow-sm)" }}
               >
-                <div className="w-11 h-11 rounded-full bg-[#E8F1FB] flex items-center justify-center flex-shrink-0">
-                  <span className="text-[#0D3B8C] font-bold text-base">
+                <div className="w-11 h-11 rounded-full bg-[#FEF3D7] flex items-center justify-center flex-shrink-0">
+                  <span className="text-[#0F5132] font-bold text-base">
                     {c.full_name?.charAt(0).toUpperCase() ?? "?"}
                   </span>
                 </div>
@@ -101,8 +101,8 @@ export default function ClientsListWithSearch({
                   <tr key={c.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-[#E8F1FB] flex items-center justify-center flex-shrink-0">
-                          <span className="text-[#0D3B8C] font-bold text-sm">
+                        <div className="w-9 h-9 rounded-full bg-[#FEF3D7] flex items-center justify-center flex-shrink-0">
+                          <span className="text-[#0F5132] font-bold text-sm">
                             {c.full_name?.charAt(0).toUpperCase() ?? "?"}
                           </span>
                         </div>
@@ -133,7 +133,7 @@ export default function ClientsListWithSearch({
                     <td className="px-5 py-4 text-right">
                       <Link
                         href={`/commercial/mes-clients/${c.id}`}
-                        className="inline-flex items-center gap-1.5 text-xs bg-[#0D3B8C] text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-[#0D3B8C]/90 transition-colors"
+                        className="inline-flex items-center gap-1.5 text-xs bg-[#0F5132] text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-[#0F5132]/90 transition-colors"
                       >
                         Gérer
                         <ArrowRight className="h-3 w-3" />

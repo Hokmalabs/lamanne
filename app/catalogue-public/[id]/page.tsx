@@ -46,7 +46,7 @@ export default async function PublicProductPage({
             <Link href="/login" className="text-sm font-semibold text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
               Connexion
             </Link>
-            <Link href="/register" className="text-sm font-bold text-white bg-[#0D3B8C] px-4 py-2 rounded-xl hover:bg-[#0D3B8C]/90 transition-colors">
+            <Link href="/register" className="text-sm font-bold text-white bg-[#0F5132] px-4 py-2 rounded-xl hover:bg-[#0F5132]/90 transition-colors">
               Commencer
             </Link>
           </div>
@@ -71,12 +71,12 @@ export default async function PublicProductPage({
           </div>
           <div className="p-5">
             {(product.category as any)?.name && (
-              <p className="text-xs text-[#378ADD] font-semibold uppercase tracking-wide mb-1">
+              <p className="text-xs text-[#F2A900] font-semibold uppercase tracking-wide mb-1">
                 {(product.category as any).name}
               </p>
             )}
             <h1 className="text-xl font-black text-gray-900 leading-snug">{product.name}</h1>
-            <p className="text-2xl font-black text-[#0D3B8C] mt-2">{formatCFA(product.price)}</p>
+            <p className="text-2xl font-black text-[#0F5132] mt-2">{formatCFA(product.price)}</p>
             {product.description && (
               <p className="text-sm text-gray-500 mt-2 leading-relaxed">{product.description}</p>
             )}
@@ -105,12 +105,12 @@ export default async function PublicProductPage({
         <PaymentSimulator price={product.price} maxMonths={product.max_tranches ?? 6} />
 
         {/* CTA */}
-        <div className="bg-[#0D3B8C] rounded-2xl p-5 text-center">
+        <div className="bg-[#0F5132] rounded-2xl p-5 text-center">
           <p className="text-white font-bold mb-1">Prêt à cotiser ?</p>
           <p className="text-white/70 text-sm mb-4">Créez un compte gratuit pour démarrer</p>
           <Link
             href="/register"
-            className="inline-block w-full bg-white text-[#0D3B8C] font-black py-3 rounded-xl text-sm hover:bg-gray-50 transition-colors"
+            className="inline-block w-full bg-white text-[#0F5132] font-black py-3 rounded-xl text-sm hover:bg-gray-50 transition-colors"
           >
             Créer mon compte — C&apos;est gratuit
           </Link>

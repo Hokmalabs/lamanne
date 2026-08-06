@@ -45,11 +45,11 @@ export function CommercialSidebar({ userName }: { userName: string }) {
   };
 
   return (
-    <aside className="hidden md:flex flex-col w-64 bg-[#0D3B8C] min-h-screen fixed left-0 top-0 z-30">
+    <aside className="hidden md:flex flex-col w-64 bg-[#0F5132] min-h-screen fixed left-0 top-0 z-30">
       <div className="p-6 border-b border-white/10">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center shadow-sm">
-            <span className="text-[#0D3B8C] font-black text-sm">LM</span>
+            <span className="text-[#0F5132] font-black text-sm">LM</span>
           </div>
           <div>
             <h1 className="text-white font-black text-lg tracking-wide">LAMANNE</h1>
@@ -82,7 +82,7 @@ export function CommercialSidebar({ userName }: { userName: string }) {
       <div className="p-4 border-t border-white/10 space-y-2">
         <Link href="/commercial/profil" className="flex items-center gap-3 hover:opacity-80 transition-opacity mb-2">
           <Avatar className="h-9 w-9">
-            <AvatarFallback className="text-xs bg-[#378ADD] text-white font-bold">{initials}</AvatarFallback>
+            <AvatarFallback className="text-xs bg-[#F2A900] text-white font-bold">{initials}</AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <p className="text-white text-sm font-semibold truncate">{userName}</p>
@@ -121,17 +121,17 @@ export function CommercialBottomNav() {
               <span
                 className={cn(
                   "flex items-center justify-center w-10 h-7 rounded-xl transition-all",
-                  isActive ? "bg-[#E8F1FB]" : ""
+                  isActive ? "bg-[#FEF3D7]" : ""
                 )}
               >
                 <Icon
                   className={cn(
                     "h-5 w-5 transition-all",
-                    isActive ? "text-[#0D3B8C] stroke-[2.5]" : "text-gray-400"
+                    isActive ? "text-[#0F5132] stroke-[2.5]" : "text-gray-400"
                   )}
                 />
               </span>
-              <span className={cn("text-[10px] font-semibold leading-none", isActive ? "text-[#0D3B8C]" : "text-gray-400")}>
+              <span className={cn("text-[10px] font-semibold leading-none", isActive ? "text-[#0F5132]" : "text-gray-400")}>
                 {label}
               </span>
             </Link>

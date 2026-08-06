@@ -16,10 +16,10 @@ export default function LandingSimulator() {
   const monthlyCost = Math.ceil(price / months);
 
   return (
-    <section className="py-20 bg-[#0D3B8C]">
+    <section className="py-20 bg-[#0F5132]">
       <div className="max-w-3xl mx-auto px-4">
         <div className="text-center mb-10">
-          <p className="text-[#378ADD] font-semibold text-sm uppercase tracking-widest mb-3">
+          <p className="text-[#F2A900] font-semibold text-sm uppercase tracking-widest mb-3">
             Simulateur
           </p>
           <h2 className="text-3xl md:text-4xl font-black text-white">
@@ -35,7 +35,7 @@ export default function LandingSimulator() {
           <div>
             <div className="flex items-center justify-between mb-3">
               <label className="font-bold text-gray-800">Prix de l&apos;article</label>
-              <span className="font-black text-2xl text-[#0D3B8C]">{formatCFALocal(price)}</span>
+              <span className="font-black text-2xl text-[#0F5132]">{formatCFALocal(price)}</span>
             </div>
             <input
               type="range"
@@ -44,7 +44,7 @@ export default function LandingSimulator() {
               step={5000}
               value={price}
               onChange={(e) => setPrice(Number(e.target.value))}
-              className="w-full accent-[#0D3B8C]"
+              className="w-full accent-[#0F5132]"
             />
             <div className="flex justify-between text-xs text-gray-400 mt-1">
               <span>10 000 FCFA</span>
@@ -56,7 +56,7 @@ export default function LandingSimulator() {
           <div>
             <div className="flex items-center justify-between mb-3">
               <label className="font-bold text-gray-800">Durée de cotisation</label>
-              <span className="font-black text-2xl text-[#0D3B8C]">{months} mois</span>
+              <span className="font-black text-2xl text-[#0F5132]">{months} mois</span>
             </div>
             <input
               type="range"
@@ -65,7 +65,7 @@ export default function LandingSimulator() {
               step={1}
               value={months}
               onChange={(e) => setMonths(Number(e.target.value))}
-              className="w-full accent-[#0D3B8C]"
+              className="w-full accent-[#0F5132]"
             />
             <div className="flex justify-between text-xs text-gray-400 mt-1">
               <span>1 mois</span>
@@ -75,17 +75,17 @@ export default function LandingSimulator() {
 
           {/* Result cards */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-[#E8F1FB] rounded-2xl p-4 text-center">
-              <p className="text-xs text-[#0D3B8C]/60 font-medium mb-1">Par jour</p>
-              <p className="font-black text-[#0D3B8C] text-lg">{formatCFALocal(dailyCost)}</p>
+            <div className="bg-[#FEF3D7] rounded-2xl p-4 text-center">
+              <p className="text-xs text-[#0F5132]/60 font-medium mb-1">Par jour</p>
+              <p className="font-black text-[#0F5132] text-lg">{formatCFALocal(dailyCost)}</p>
             </div>
-            <div className="bg-[#0D3B8C] rounded-2xl p-4 text-center">
+            <div className="bg-[#0F5132] rounded-2xl p-4 text-center">
               <p className="text-xs text-white/60 font-medium mb-1">Par semaine</p>
               <p className="font-black text-white text-lg">{formatCFALocal(weeklyCost)}</p>
             </div>
-            <div className="bg-[#E8F1FB] rounded-2xl p-4 text-center">
-              <p className="text-xs text-[#0D3B8C]/60 font-medium mb-1">Par mois</p>
-              <p className="font-black text-[#0D3B8C] text-lg">{formatCFALocal(monthlyCost)}</p>
+            <div className="bg-[#FEF3D7] rounded-2xl p-4 text-center">
+              <p className="text-xs text-[#0F5132]/60 font-medium mb-1">Par mois</p>
+              <p className="font-black text-[#0F5132] text-lg">{formatCFALocal(monthlyCost)}</p>
             </div>
           </div>
 

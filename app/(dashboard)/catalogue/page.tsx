@@ -59,7 +59,7 @@ export default function CataloguePage() {
             placeholder="Rechercher un article…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 bg-white rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#0D3B8C]/20 transition-all"
+            className="w-full pl-11 pr-4 py-3 bg-white rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#0F5132]/20 transition-all"
             style={{ boxShadow: "var(--shadow-sm)" }}
           />
         </div>
@@ -74,8 +74,8 @@ export default function CataloguePage() {
               className={cn(
                 "flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all",
                 activeCategory === "all"
-                  ? "bg-[#0D3B8C] text-white"
-                  : "bg-white text-gray-500 border border-gray-200 hover:border-[#378ADD] hover:text-[#378ADD]"
+                  ? "bg-[#0F5132] text-white"
+                  : "bg-white text-gray-500 border border-gray-200 hover:border-[#F2A900] hover:text-[#F2A900]"
               )}
             >
               Tout
@@ -87,8 +87,8 @@ export default function CataloguePage() {
                 className={cn(
                   "flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all",
                   activeCategory === cat.id
-                    ? "bg-[#0D3B8C] text-white"
-                    : "bg-white text-gray-500 border border-gray-200 hover:border-[#378ADD] hover:text-[#378ADD]"
+                    ? "bg-[#0F5132] text-white"
+                    : "bg-white text-gray-500 border border-gray-200 hover:border-[#F2A900] hover:text-[#F2A900]"
                 )}
               >
                 {cat.name}

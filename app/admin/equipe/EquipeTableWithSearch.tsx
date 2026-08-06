@@ -48,7 +48,7 @@ export default function EquipeTableWithSearch({ members }: { members: Member[] }
               onClick={() => setRoleFilter(f)}
               className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
                 roleFilter === f
-                  ? "bg-[#0D3B8C] text-white"
+                  ? "bg-[#0F5132] text-white"
                   : "bg-white border border-gray-200 text-gray-600 hover:border-gray-400"
               }`}
             >
@@ -62,7 +62,7 @@ export default function EquipeTableWithSearch({ members }: { members: Member[] }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Rechercher…"
-            className="pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0D3B8C]/20 w-full sm:w-64"
+            className="pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0F5132]/20 w-full sm:w-64"
             style={{ fontSize: "16px" }}
           />
         </div>

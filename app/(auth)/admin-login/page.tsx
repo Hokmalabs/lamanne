@@ -53,7 +53,7 @@ export default function AdminLoginPage() {
         <div className="text-center mb-8">
           <div
             className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-            style={{ background: "#0D3B8C" }}
+            style={{ background: "#0F5132" }}
           >
             <ShieldCheck className="h-8 w-8 text-white" />
           </div>
@@ -84,7 +84,7 @@ export default function AdminLoginPage() {
                 required
                 autoComplete="email"
                 placeholder="admin@lamanne.app"
-                className="w-full px-4 py-3 rounded-xl text-white placeholder-white/20 outline-none focus:ring-2 focus:ring-[#0D3B8C] transition-all"
+                className="w-full px-4 py-3 rounded-xl text-white placeholder-white/20 outline-none focus:ring-2 focus:ring-[#0F5132] transition-all"
                 style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)" }}
               />
             </div>
@@ -101,7 +101,7 @@ export default function AdminLoginPage() {
                   required
                   autoComplete="current-password"
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 pr-11 rounded-xl text-white placeholder-white/20 outline-none focus:ring-2 focus:ring-[#0D3B8C] transition-all"
+                  className="w-full px-4 py-3 pr-11 rounded-xl text-white placeholder-white/20 outline-none focus:ring-2 focus:ring-[#0F5132] transition-all"
                   style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)" }}
                 />
                 <button
@@ -118,7 +118,7 @@ export default function AdminLoginPage() {
               type="submit"
               disabled={loading}
               className="w-full py-3 rounded-xl font-bold text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: "#0D3B8C" }}
+              style={{ background: "#0F5132" }}
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">

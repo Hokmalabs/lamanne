@@ -112,7 +112,7 @@ export default function DashboardContent({ showGreeting = true }: { showGreeting
           {/* FAB on mobile, button on desktop */}
           <Link
             href="/catalogue"
-            className="w-11 h-11 rounded-2xl bg-[#0D3B8C] text-white flex items-center justify-center shadow-lg hover:bg-[#0D3B8C]/90 transition-all active:scale-95"
+            className="w-11 h-11 rounded-2xl bg-[#0F5132] text-white flex items-center justify-center shadow-lg hover:bg-[#0F5132]/90 transition-all active:scale-95"
           >
             <Plus className="h-5 w-5" />
           </Link>
@@ -127,7 +127,7 @@ export default function DashboardContent({ showGreeting = true }: { showGreeting
             label="Total engagé"
             value={formatCFA(totalEngaged)}
             sub={`${cotisations.length} cotisation(s)`}
-            bg="#0D3B8C"
+            bg="#0F5132"
             iconBg="rgba(255,255,255,0.2)"
           />
           <MetricCard
@@ -192,7 +192,7 @@ export default function DashboardContent({ showGreeting = true }: { showGreeting
           <h2 className="text-base font-bold text-gray-900">Cotisations actives</h2>
           <Link
             href="/cotisations"
-            className="text-sm text-[#378ADD] hover:underline font-medium"
+            className="text-sm text-[#F2A900] hover:underline font-medium"
           >
             Voir tout
           </Link>
@@ -208,13 +208,13 @@ export default function DashboardContent({ showGreeting = true }: { showGreeting
           <div
             className="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center"
           >
-            <div className="w-14 h-14 bg-[#E8F1FB] rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <ShoppingBag className="h-7 w-7 text-[#378ADD]" />
+            <div className="w-14 h-14 bg-[#FEF3D7] rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <ShoppingBag className="h-7 w-7 text-[#F2A900]" />
             </div>
             <h3 className="font-bold text-gray-700 mb-1">Aucune cotisation en cours</h3>
             <p className="text-gray-400 text-sm mb-5">Commencez à cotiser depuis le catalogue.</p>
             <Link href="/catalogue">
-              <button className="bg-[#0D3B8C] text-white px-5 py-2.5 rounded-xl text-sm font-bold inline-flex items-center gap-2">
+              <button className="bg-[#0F5132] text-white px-5 py-2.5 rounded-xl text-sm font-bold inline-flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 Explorer le catalogue
               </button>
@@ -233,8 +233,8 @@ export default function DashboardContent({ showGreeting = true }: { showGreeting
                   <div className="bg-white rounded-2xl p-4 animate-fade-in card-hover" style={{ boxShadow: "var(--shadow-sm)" }}>
                     <div className="flex items-start justify-between gap-2 mb-3">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-12 h-12 rounded-xl bg-[#E8F1FB] flex items-center justify-center flex-shrink-0">
-                          <ShoppingBag className="h-5 w-5 text-[#378ADD]" />
+                        <div className="w-12 h-12 rounded-xl bg-[#FEF3D7] flex items-center justify-center flex-shrink-0">
+                          <ShoppingBag className="h-5 w-5 text-[#F2A900]" />
                         </div>
                         <div className="min-w-0">
                           <p className="font-semibold text-gray-900 text-sm leading-snug truncate">
@@ -295,14 +295,14 @@ export default function DashboardContent({ showGreeting = true }: { showGreeting
         <h2 className="text-base font-bold text-gray-900 mb-3">Accès rapide</h2>
         <div className="grid grid-cols-2 gap-3">
           <Link href="/catalogue">
-            <div className="bg-[#0D3B8C] rounded-2xl p-5 text-white hover:opacity-90 transition-opacity cursor-pointer active:scale-95">
+            <div className="bg-[#0F5132] rounded-2xl p-5 text-white hover:opacity-90 transition-opacity cursor-pointer active:scale-95">
               <ShoppingBag className="h-6 w-6 mb-3 opacity-80" />
               <p className="font-bold text-sm">Explorer</p>
               <p className="text-white/50 text-xs">Le catalogue</p>
             </div>
           </Link>
           <Link href="/historique">
-            <div className="bg-[#378ADD] rounded-2xl p-5 text-white hover:opacity-90 transition-opacity cursor-pointer active:scale-95">
+            <div className="bg-[#F2A900] rounded-2xl p-5 text-white hover:opacity-90 transition-opacity cursor-pointer active:scale-95">
               <Clock className="h-6 w-6 mb-3 opacity-80" />
               <p className="font-bold text-sm">Historique</p>
               <p className="text-white/50 text-xs">Mes paiements</p>
