@@ -2,10 +2,11 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { createClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Phone, ArrowLeft, PlusCircle } from "lucide-react";
+import { Phone, ArrowLeft, PlusCircle, ShoppingBag } from "lucide-react";
 import { formatCFA } from "@/lib/utils";
 import VersementModal from "./VersementModal";
 import RemboursementModal from "./RemboursementModal";
+import ProgressRing from "@/components/ProgressRing";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +71,7 @@ export default async function ClientDetailPage({
             </span>
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-black text-gray-900">{client.full_name}</h1>
+            <h1 className="font-sora text-xl font-black text-gray-900">{client.full_name}</h1>
             {client.phone && (
               <p className="text-sm text-gray-500 flex items-center gap-1.5 mt-0.5">
                 <Phone className="h-3.5 w-3.5" />
@@ -94,11 +95,12 @@ export default async function ClientDetailPage({
 
       {/* Cotisations */}
       <div>
-        <h2 className="font-bold text-gray-900 mb-3">Cotisations actives ({cotisations.length})</h2>
+        <h2 className="font-sora font-bold text-gray-900 mb-3">Cotisations actives ({cotisations.length})</h2>
 
         {cotisations.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 flex flex-col items-center justify-center py-12 text-gray-400">
-            <p className="font-medium">Aucune cotisation active</p>
+            <ShoppingBag className="h-8 w-8 mb-2 opacity-40" />
+            <p className="font-medium">Aucune cotisation en cours</p>
             <Link href={`/commercial/mes-clients/${clientId}/nouvelle-cotisation`}
               className="mt-3 text-sm text-lamanne-accent hover:underline">
               Démarrer une cotisation
@@ -115,50 +117,56 @@ export default async function ClientDetailPage({
 
               return (
                 <div key={cot.id} className="bg-white rounded-2xl border border-gray-100 p-5">
-                  <div className="flex items-start justify-between gap-3 mb-4">
-                    <div>
-                      <p className="font-bold text-gray-900">{cot.product_name}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        Démarrée le {new Date(cot.created_at).toLocaleDateString("fr-FR")}
-                      </p>
-                    </div>
-                    {daysLeft !== null && (
-                      <span className={`text-xs px-2 py-1 rounded-full font-semibold flex-shrink-0 ${
-                        daysLeft <= 7 ? "bg-red-100 text-red-600" :
-                        daysLeft <= 30 ? "bg-amber-100 text-amber-600" :
-                        "bg-gray-100 text-gray-500"
-                      }`}>
-                        {daysLeft > 0 ? `J-${daysLeft}` : "Expiré"}
-                      </span>
-                    )}
-                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
 
-                  <div className="mb-4">
-                    <div className="flex justify-between text-xs text-gray-500 mb-1.5">
-                      <span>{formatCFA(cot.amount_paid)} payé</span>
-                      <span className="font-semibold">{pct}%</span>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2">
-                      <div className="bg-lamanne-primary h-2 rounded-full transition-all" style={{ width: `${pct}%` }} />
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Reste : <span className="font-semibold text-lamanne-primary">{formatCFA(remaining)}</span>
-                      {" / "}{formatCFA(cot.product_price)}
-                    </p>
-                  </div>
+                    {/* Bloc texte à gauche (desktop) / haut (mobile) */}
+                    <div className="flex-1 min-w-0 order-2 sm:order-1">
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div>
+                          <p className="font-sora font-bold text-gray-900">{cot.product_name}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            Démarrée le {new Date(cot.created_at).toLocaleDateString("fr-FR")}
+                          </p>
+                        </div>
+                        {daysLeft !== null && (
+                          <span className={`text-xs px-2 py-1 rounded-full font-semibold flex-shrink-0 ${
+                            daysLeft <= 7 ? "bg-red-100 text-red-600" :
+                            daysLeft <= 30 ? "bg-amber-100 text-amber-600" :
+                            "bg-gray-100 text-gray-500"
+                          }`}>
+                            {daysLeft > 0 ? `J-${daysLeft}` : "Expiré"}
+                          </span>
+                        )}
+                      </div>
 
-                  <div className="flex gap-2">
-                    <VersementModal
-                      cotisationId={cot.id}
-                      productName={cot.product_name}
-                      maxAmount={remaining}
-                    />
-                    <RemboursementModal
-                      cotisationId={cot.id}
-                      clientId={clientId}
-                      productName={cot.product_name}
-                      amountPaid={cot.amount_paid}
-                    />
+                      <div className="text-sm space-y-0.5">
+                        <p className="text-gray-500">{formatCFA(cot.amount_paid)} payé</p>
+                        <p className="text-gray-400">
+                          Reste : <span className="font-semibold text-lamanne-primary">{formatCFA(remaining)}</span>
+                          {" / "}{formatCFA(cot.product_price)}
+                        </p>
+                      </div>
+
+                      <div className="flex gap-2 mt-4">
+                        <VersementModal
+                          cotisationId={cot.id}
+                          productName={cot.product_name}
+                          maxAmount={remaining}
+                        />
+                        <RemboursementModal
+                          cotisationId={cot.id}
+                          clientId={clientId}
+                          productName={cot.product_name}
+                          amountPaid={cot.amount_paid}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Anneau à droite (desktop) / haut centré (mobile) */}
+                    <div className="flex justify-center order-1 sm:order-2 flex-shrink-0">
+                      <ProgressRing value={pct} size={96} strokeWidth={8} label="payé" />
+                    </div>
+
                   </div>
                 </div>
               );
