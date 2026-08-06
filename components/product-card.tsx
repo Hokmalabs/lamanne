@@ -48,7 +48,7 @@ export function ProductCard({ product, onSelect }: ProductCardProps) {
         )}
         {/* Stock badge */}
         {product.stock <= 5 && product.stock > 0 && (
-          <div className="absolute top-2 right-2 bg-orange-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+          <div className="absolute top-2 right-2 bg-[#F2A900] text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
             {product.stock} restant{product.stock > 1 ? "s" : ""}
           </div>
         )}

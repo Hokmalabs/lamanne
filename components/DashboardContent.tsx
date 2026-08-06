@@ -143,7 +143,7 @@ export default function DashboardContent({ showGreeting = true }: { showGreeting
             label="Restant à payer"
             value={formatCFA(totalRemaining)}
             sub="Sur toutes cotisations"
-            bg="#F5A623"
+            bg="#F2A900"
             iconBg="rgba(255,255,255,0.2)"
           />
         </div>

@@ -188,7 +188,7 @@ export default async function CommercialStatsPage() {
     { label: "Clients assignés",   value: clientIds.length,         icon: Users,       bg: "#0F5132" },
     { label: "Encaissé ce mois",   value: formatCFA(totalMois),     icon: Wallet,      bg: "#2D9B6F" },
     { label: "Clients actifs",     value: clientsActifs,            icon: TrendingUp,  bg: "#F2A900" },
-    { label: "Taux complétion",    value: `${tauxCompletion}%`,     icon: Target,      bg: "#F5A623" },
+    { label: "Taux complétion",    value: `${tauxCompletion}%`,     icon: Target,      bg: "#F2A900" },
   ];
 
   return (
