@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -11,19 +9,19 @@
   --card-foreground: 222.2 84% 4.9%;
   --popover: 0 0% 100%;
   --popover-foreground: 222.2 84% 4.9%;
-  --primary: 220 83% 30%;
+  --primary: 151.8 68.7% 18.8%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 210 60% 93%;
-  --secondary-foreground: 220 83% 30%;
+  --secondary: 36.9 100% 97.5%;
+  --secondary-foreground: 151.8 68.7% 18.8%;
   --muted: 210 40% 96.1%;
   --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 72% 55%;
-  --accent-foreground: 0 0% 100%;
+  --accent: 41.9 100% 47.5%;
+  --accent-foreground: 217.2 32.6% 17.5%;
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 210 40% 98%;
   --border: 214.3 31.8% 91.4%;
   --input: 214.3 31.8% 91.4%;
-  --ring: 210 72% 55%;
+  --ring: 41.9 100% 47.5%;
   --radius: 0.75rem;
 
   /* Design tokens */
@@ -34,12 +32,14 @@
   --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.14);
-  --blue-primary: #0D3B8C;
-  --blue-accent: #378ADD;
-  --blue-light: #E8F1FB;
+  --lamanne-green: #0F5132;
+  --lamanne-gold: #F2A900;
+  --lamanne-cream: #FFFAF2;
+  --lamanne-ink: #1E293B;
+  --lamanne-mist: #E6E8EB;
   --green: #2D9B6F;
-  --orange: #F5A623;
-  --red: #E53E3E;
+  --orange: #F2A900;
+  --red: #E53935;
   --gray-50: #F8F9FC;
   --gray-100: #F0F2F7;
   --gray-200: #E2E6EF;
@@ -69,8 +69,8 @@ h3 { font-size: 18px; font-weight: 600; }
 /* ─── Scrollbar ─────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #f1f5f9; }
-::-webkit-scrollbar-thumb { background: #378ADD; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #0D3B8C; }
+::-webkit-scrollbar-thumb { background: #F2A900; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #0F5132; }
 
 /* ─── Safe area ─────────────────────────────────────────────── */
 .safe-area-pb {
@@ -101,7 +101,11 @@ button:active, a:active {
 
 /* ─── Progress bar animation ─────────────────────────────────── */
 .progress-bar-fill {
+  background: linear-gradient(90deg, #0F5132 0%, #F2A900 100%);
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .progress-bar-fill { transition: none; }
 }
 
 /* ─── Bottom sheet slide-up ──────────────────────────────────── */
@@ -151,3 +155,21 @@ input, textarea, select {
 .badge-pulse {
   animation: pulse-badge 2s ease-in-out infinite;
 }
+
+/* ─── Status badges ──────────────────────────────────────────── */
+.badge-active,
+.badge-completed,
+.badge-ready,
+.badge-cancelled {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.badge-active    { background: #FCEEDA; color: #B8781F; }
+.badge-completed { background: #E3F3EC; color: #0F5132; }
+.badge-ready     { background: #E3F3EC; color: #0F5132; }
+.badge-cancelled { background: #FCEBEB; color: #A32D2D; }

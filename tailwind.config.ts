@@ -11,12 +11,12 @@ const config: Config = {
     extend: {
       colors: {
         lamanne: {
-          primary: "#0D3B8C",
-          accent: "#378ADD",
-          light: "#E6F1FB",
-          success: "#639922",
-          warning: "#BA7517",
-          danger: "#C0392B",
+          primary: "#0F5132",
+          accent: "#F2A900",
+          light: "#FFFAF2",
+          success: "#0F5132",
+          warning: "#F2A900",
+          danger: "#E53935",
         },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -24,20 +24,20 @@ const config: Config = {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "#0D3B8C",
+          DEFAULT: "#0F5132",
           foreground: "#ffffff",
         },
         secondary: {
-          DEFAULT: "#E6F1FB",
-          foreground: "#0D3B8C",
+          DEFAULT: "#FFFAF2",
+          foreground: "#0F5132",
         },
         muted: {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
         },
         accent: {
-          DEFAULT: "#378ADD",
-          foreground: "#ffffff",
+          DEFAULT: "#F2A900",
+          foreground: "#1E293B",
         },
         card: {
           DEFAULT: "hsl(var(--card))",
@@ -46,6 +46,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["Inter", "sans-serif"],
+        sora: ["var(--font-sora)", "sans-serif"],
       },
       borderRadius: {
         lg: "var(--radius)",
