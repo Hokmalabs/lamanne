@@ -88,7 +88,7 @@ export default async function ClientDetailPage({
 
           {/* Bouton : pleine largeur sur mobile, auto sur desktop */}
           <Link
-            href={`/commercial/mes-clients/${clientId}/nouvelle-cotisation`}
+            href={`/commercial/catalogue?for_client=${clientId}`}
             className="inline-flex items-center justify-center gap-2 bg-lamanne-primary text-white px-4 py-3 sm:py-2 rounded-xl text-sm font-semibold hover:bg-lamanne-primary/90 transition-colors w-full sm:w-auto flex-shrink-0"
           >
             <PlusCircle className="h-4 w-4" />
@@ -105,7 +105,7 @@ export default async function ClientDetailPage({
           <div className="bg-white rounded-2xl border border-gray-100 flex flex-col items-center justify-center py-12 text-gray-400">
             <ShoppingBag className="h-8 w-8 mb-2 opacity-40" />
             <p className="font-medium">Aucune cotisation en cours</p>
-            <Link href={`/commercial/mes-clients/${clientId}/nouvelle-cotisation`}
+            <Link href={`/commercial/catalogue?for_client=${clientId}`}
               className="mt-3 text-sm text-lamanne-accent hover:underline">
               Démarrer une cotisation
             </Link>
