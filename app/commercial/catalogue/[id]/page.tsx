@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Product } from "@/lib/types";
 import { formatCFA, formatDate } from "@/lib/utils";
@@ -36,6 +36,8 @@ function addMonths(months: number): Date {
 export default function CommercialProductPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const forClientId = searchParams.get("for_client");
 
   const [product, setProduct] = useState<Product | null>(null);
   const [clients, setClients] = useState<ClientProfile[]>([]);
@@ -59,14 +61,21 @@ export default function CommercialProductPage() {
 
       if (prod) setProduct(prod as Product);
       if (clientList) setClients(clientList as ClientProfile[]);
+
+      if (forClientId && (clientList ?? []).some((c) => c.id === forClientId)) {
+        setSelectedClientId(forClientId);
+        setMode("client");
+      }
+
       setLoading(false);
     }
     load();
-  }, [id]);
+  }, [id, forClientId]);
 
   const firstPaymentNum = typeof firstPayment === "number" ? firstPayment : 0;
   const deadline = product ? addMonths(product.max_tranches) : null;
   const canSubmit = mode === "client" && !!selectedClientId && firstPaymentNum >= 1000 && !!product && firstPaymentNum <= product.price;
+  const clientLocked = !!forClientId && clients.some((c) => c.id === forClientId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,6 +199,13 @@ export default function CommercialProductPage() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5">
         <h2 className="font-bold text-gray-900">Démarrer une cotisation</h2>
 
+        {clientLocked && (
+          <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+            <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+            <span>Cotisation pour ce client</span>
+          </div>
+        )}
+
         {/* Toggle */}
         <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
           <button
@@ -206,9 +222,11 @@ export default function CommercialProductPage() {
           <button
             type="button"
             onClick={() => setMode("self")}
+            disabled={clientLocked}
             className={cn(
               "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all",
-              mode === "self" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+              mode === "self" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700",
+              clientLocked && "opacity-40 cursor-not-allowed"
             )}
           >
             <User className="h-4 w-4" />
