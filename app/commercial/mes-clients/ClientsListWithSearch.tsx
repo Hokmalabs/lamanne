@@ -60,12 +60,12 @@ export default function ClientsListWithSearch({
                 style={{ boxShadow: "var(--shadow-sm)" }}
               >
                 <div className="w-11 h-11 rounded-full bg-[#FEF3D7] flex items-center justify-center flex-shrink-0">
-                  <span className="text-[#0F5132] font-bold text-base">
+                  <span className="text-lamanne-primary font-bold text-base">
                     {c.full_name?.charAt(0).toUpperCase() ?? "?"}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-gray-900 truncate">{c.full_name}</p>
+                  <p className="font-sora font-bold text-gray-900 truncate">{c.full_name}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{c.phone ?? "—"}</p>
                   <div className="flex items-center gap-3 mt-1">
                     <span className="inline-flex items-center gap-1 text-xs text-gray-500">
@@ -102,11 +102,11 @@ export default function ClientsListWithSearch({
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-[#FEF3D7] flex items-center justify-center flex-shrink-0">
-                          <span className="text-[#0F5132] font-bold text-sm">
+                          <span className="text-lamanne-primary font-bold text-sm">
                             {c.full_name?.charAt(0).toUpperCase() ?? "?"}
                           </span>
                         </div>
-                        <p className="font-semibold text-gray-900">{c.full_name}</p>
+                        <p className="font-sora font-semibold text-gray-900">{c.full_name}</p>
                       </div>
                     </td>
                     <td className="px-5 py-4 text-gray-500">
@@ -133,7 +133,7 @@ export default function ClientsListWithSearch({
                     <td className="px-5 py-4 text-right">
                       <Link
                         href={`/commercial/mes-clients/${c.id}`}
-                        className="inline-flex items-center gap-1.5 text-xs bg-[#0F5132] text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-[#0F5132]/90 transition-colors"
+                        className="inline-flex items-center gap-1.5 text-xs bg-lamanne-primary text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-lamanne-primary/90 transition-colors"
                       >
                         Gérer
                         <ArrowRight className="h-3 w-3" />

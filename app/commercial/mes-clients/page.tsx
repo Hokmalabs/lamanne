@@ -57,7 +57,7 @@ export default async function MesClientsPage() {
   return (
     <div className="space-y-5 relative pb-20">
       <div>
-        <h1 className="text-2xl font-black text-gray-900">Mes clients</h1>
+        <h1 className="font-sora text-2xl font-black text-gray-900">Mes clients</h1>
         <p className="text-gray-400 text-sm mt-0.5">{list.length} client(s) assigné(s)</p>
       </div>
 
