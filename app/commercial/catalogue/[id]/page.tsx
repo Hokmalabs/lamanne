@@ -54,17 +54,21 @@ export default function CommercialProductPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [{ data: prod }, { data: clientList }] = await Promise.all([
-        supabase.from("products").select("*, category:categories(name)").eq("id", id).single(),
-        supabase.from("profiles").select("id, full_name, phone").eq("assigned_commercial", user.id).order("full_name"),
-      ]);
+      const prodRes = await supabase.from("products").select("*, category:categories(name)").eq("id", id).single();
+      if (prodRes.data) setProduct(prodRes.data as Product);
 
-      if (prod) setProduct(prod as Product);
-      if (clientList) setClients(clientList as ClientProfile[]);
-
-      if (forClientId && (clientList ?? []).some((c) => c.id === forClientId)) {
-        setSelectedClientId(forClientId);
-        setMode("client");
+      try {
+        const res = await fetch("/api/commercial/clients");
+        if (res.ok) {
+          const { clients: clientList } = await res.json();
+          setClients((clientList ?? []) as ClientProfile[]);
+          if (forClientId && (clientList ?? []).some((c: ClientProfile) => c.id === forClientId)) {
+            setSelectedClientId(forClientId);
+            setMode("client");
+          }
+        }
+      } catch {
+        // clients non chargés : le select affichera "aucun client"
       }
 
       setLoading(false);

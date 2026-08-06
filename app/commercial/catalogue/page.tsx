@@ -1,22 +1,26 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ProductCard } from "@/components/product-card";
 import { Input } from "@/components/ui/input";
 import { Category, Product } from "@/lib/types";
-import { Search, SlidersHorizontal, PackageOpen } from "lucide-react";
+import { Search, SlidersHorizontal, PackageOpen, UserCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
+import Link from "next/link";
 
 type ProductWithCategory = Product & { category?: Pick<Category, "name"> };
 
 export default function CommercialCataloguePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const forClientId = searchParams.get("for_client");
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<ProductWithCategory[]>([]);
+  const [clientName, setClientName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,10 +35,24 @@ export default function CommercialCataloguePage() {
       ]);
       if (cats) setCategories(cats);
       if (prods) setProducts(prods as ProductWithCategory[]);
+
+      if (forClientId) {
+        try {
+          const res = await fetch("/api/commercial/clients");
+          if (res.ok) {
+            const { clients } = await res.json();
+            const found = (clients ?? []).find((c: { id: string; full_name: string }) => c.id === forClientId);
+            if (found) setClientName(found.full_name);
+          }
+        } catch {
+          // silencieux : si le nom ne charge pas, la bannière ne s'affiche pas, pas bloquant
+        }
+      }
+
       setLoading(false);
     }
     fetchData();
-  }, []);
+  }, [forClientId]);
 
   const filtered = products.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
@@ -50,6 +68,21 @@ export default function CommercialCataloguePage() {
           {loading ? "Chargement..." : `${filtered.length} article(s) disponible(s)`}
         </p>
       </div>
+
+      {forClientId && clientName && (
+        <div className="flex items-center gap-3 bg-lamanne-primary/5 border border-lamanne-primary/20 rounded-xl px-4 py-3">
+          <div className="w-9 h-9 rounded-full bg-lamanne-primary/10 flex items-center justify-center flex-shrink-0">
+            <UserCircle className="h-5 w-5 text-lamanne-primary" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-gray-500">Nouvelle cotisation pour</p>
+            <p className="text-sm font-semibold text-lamanne-primary truncate">{clientName}</p>
+          </div>
+          <Link href="/commercial/catalogue" className="text-gray-400 hover:text-gray-600 flex-shrink-0" aria-label="Annuler le contexte client">
+            <X className="h-4 w-4" />
+          </Link>
+        </div>
+      )}
 
       <div className="relative">
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -121,7 +154,11 @@ export default function CommercialCataloguePage() {
             <ProductCard
               key={product.id}
               product={product}
-              onSelect={(p) => router.push(`/commercial/catalogue/${p.id}`)}
+              onSelect={(p) => router.push(
+                forClientId
+                  ? `/commercial/catalogue/${p.id}?for_client=${forClientId}`
+                  : `/commercial/catalogue/${p.id}`
+              )}
             />
           ))}
         </div>
