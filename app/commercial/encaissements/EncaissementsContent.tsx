@@ -97,18 +97,18 @@ export default function EncaissementsContent({
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-[#FEF3D7] flex items-center justify-center flex-shrink-0">
-                    <span className="text-[#0F5132] font-bold text-sm">
+                    <span className="text-lamanne-primary font-bold text-sm">
                       {cot.client_name.charAt(0).toUpperCase()}
                     </span>
                   </div>
                   <div>
-                    <p className="font-bold text-gray-900 text-sm">{cot.client_name}</p>
+                    <p className="font-sora font-bold text-gray-900 text-sm">{cot.client_name}</p>
                     <p className="text-xs text-gray-400">{cot.product_name}</p>
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <p className="text-xs text-gray-400">Reste</p>
-                  <p className="font-black text-[#0F5132] text-sm">{formatCFA(remaining)}</p>
+                  <p className="font-sora font-black text-lamanne-primary text-sm">{formatCFA(remaining)}</p>
                 </div>
               </div>
 
@@ -119,13 +119,7 @@ export default function EncaissementsContent({
                   <span className="font-semibold">{pct}%</span>
                 </div>
                 <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${pct}%`,
-                      background: pct >= 70 ? "#2D9B6F" : pct >= 30 ? "#F5A623" : "#E55353",
-                    }}
-                  />
+                  <div className="progress-bar-fill h-full rounded-full" style={{ width: `${pct}%` }} />
                 </div>
               </div>
 
@@ -143,7 +137,7 @@ export default function EncaissementsContent({
                 className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${
                   isOpen
                     ? "bg-gray-100 text-gray-600"
-                    : "bg-[#0F5132] text-white hover:bg-[#0F5132]/90"
+                    : "bg-lamanne-primary text-white hover:bg-lamanne-primary/90"
                 }`}
               >
                 {isOpen ? (

@@ -25,7 +25,6 @@ export default async function EncaissementsPage() {
   if (!user) return null;
 
   const commercialId = user.id;
-  console.log("[Encaissements] commercialId:", commercialId);
 
   // 1. Clients assigned to this commercial
   const { data: clients } = await admin
@@ -36,7 +35,6 @@ export default async function EncaissementsPage() {
     .order("full_name");
 
   const clientIds = (clients ?? []).map((c) => c.id);
-  console.log("[Encaissements] clientIds:", clientIds);
 
   // 2. All cotisations for these clients
   let cotisations: any[] = [];
@@ -111,8 +109,6 @@ export default async function EncaissementsPage() {
       .gte("paid_at", monthISO)
       .order("paid_at", { ascending: false });
 
-    console.log("[Encaissements] monthPayments count:", monthPayments?.length);
-
     totalMonth = (monthPayments ?? []).reduce((s, p) => s + (p.amount ?? 0), 0);
 
     const todayMs = todayStart.getTime();
@@ -123,8 +119,6 @@ export default async function EncaissementsPage() {
       if (t >= weekMs) totalWeek += p.amount ?? 0;
       if (t >= todayMs) { totalToday += p.amount ?? 0; nbToday++; }
     }
-
-    console.log("[Encaissements] today:", totalToday, "week:", totalWeek, "month:", totalMonth);
 
     // For the list: payments from last 7 days (may include days before month start in edge cases)
     // If month start is within last 7 days, monthPayments already covers it.
@@ -193,18 +187,18 @@ export default async function EncaissementsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-black text-gray-900">Encaissements</h1>
+        <h1 className="font-sora text-2xl font-black text-gray-900">Encaissements</h1>
         <p className="text-gray-500 text-sm mt-1 capitalize">{dateLabel}</p>
       </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-4">
         <div
-          className="bg-[#0F5132] text-white rounded-2xl p-5"
+          className="bg-lamanne-primary text-white rounded-2xl p-5"
           style={{ boxShadow: "var(--shadow-sm)" }}
         >
           <Wallet className="h-5 w-5 mb-2 opacity-70" />
-          <p className="text-2xl font-black">{formatCFA(totalToday)}</p>
+          <p className="font-sora text-xl sm:text-2xl font-black truncate">{formatCFA(totalToday)}</p>
           <p className="text-white/70 text-sm mt-0.5">Aujourd&apos;hui</p>
         </div>
         <div
@@ -212,15 +206,15 @@ export default async function EncaissementsPage() {
           style={{ boxShadow: "var(--shadow-sm)" }}
         >
           <Clock className="h-5 w-5 mb-2 text-gray-400" />
-          <p className="text-2xl font-black text-gray-900">{nbToday}</p>
+          <p className="font-sora text-xl sm:text-2xl font-black text-gray-900 truncate">{nbToday}</p>
           <p className="text-gray-500 text-sm mt-0.5">Versements aujourd&apos;hui</p>
         </div>
         <div
           className="bg-white rounded-2xl p-5"
           style={{ boxShadow: "var(--shadow-sm)" }}
         >
-          <CalendarDays className="h-5 w-5 mb-2 text-[#F2A900]" />
-          <p className="text-2xl font-black text-gray-900">{formatCFA(totalWeek)}</p>
+          <CalendarDays className="h-5 w-5 mb-2 text-lamanne-accent" />
+          <p className="font-sora text-xl sm:text-2xl font-black text-gray-900 truncate">{formatCFA(totalWeek)}</p>
           <p className="text-gray-500 text-sm mt-0.5">Cette semaine</p>
         </div>
         <div
@@ -228,7 +222,7 @@ export default async function EncaissementsPage() {
           style={{ boxShadow: "var(--shadow-sm)" }}
         >
           <TrendingUp className="h-5 w-5 mb-2 text-[#2D9B6F]" />
-          <p className="text-2xl font-black text-gray-900">{formatCFA(totalMonth)}</p>
+          <p className="font-sora text-xl sm:text-2xl font-black text-gray-900 truncate">{formatCFA(totalMonth)}</p>
           <p className="text-gray-500 text-sm mt-0.5">Ce mois</p>
         </div>
       </div>
@@ -236,7 +230,7 @@ export default async function EncaissementsPage() {
       {/* Recent payments list — last 7 days */}
       {recentPayments.length > 0 && (
         <div>
-          <h2 className="font-bold text-gray-900 mb-3">Versements des 7 derniers jours</h2>
+          <h2 className="font-sora font-bold text-gray-900 mb-3">Versements des 7 derniers jours</h2>
           <div
             className="bg-white rounded-2xl overflow-hidden"
             style={{ boxShadow: "var(--shadow-sm)" }}
@@ -246,7 +240,7 @@ export default async function EncaissementsPage() {
               {recentPayments.map((p) => (
                 <div key={p.id} className="flex items-center gap-3 px-4 py-3">
                   <div className="w-9 h-9 rounded-full bg-[#FEF3D7] flex items-center justify-center flex-shrink-0">
-                    <span className="text-[#0F5132] font-bold text-xs">
+                    <span className="text-lamanne-primary font-bold text-xs">
                       {p.client_name.charAt(0).toUpperCase()}
                     </span>
                   </div>
@@ -255,7 +249,7 @@ export default async function EncaissementsPage() {
                     <p className="text-xs text-gray-400 truncate">{p.product_name}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="font-black text-[#0F5132] text-sm">{formatCFA(p.amount)}</p>
+                    <p className="font-black text-lamanne-primary text-sm">{formatCFA(p.amount)}</p>
                     <p className="text-xs text-gray-400">
                       {new Date(p.paid_at).toLocaleDateString("fr-FR", {
                         day: "numeric",
@@ -296,7 +290,7 @@ export default async function EncaissementsPage() {
                         minute: "2-digit",
                       })}
                     </td>
-                    <td className="px-5 py-3 text-right font-black text-[#0F5132]">
+                    <td className="px-5 py-3 text-right font-black text-lamanne-primary">
                       {formatCFA(p.amount)}
                     </td>
                   </tr>
