@@ -67,7 +67,7 @@ export default async function CommercialPage() {
             </div>
             <ArrowRight className="h-4 w-4 opacity-60" />
           </div>
-          <p className="text-2xl font-black">{activeClientsCount}</p>
+          <p className="font-sora text-2xl font-black">{activeClientsCount}</p>
           <p className="text-white/70 text-sm mt-0.5">Clients actifs</p>
         </Link>
 
@@ -76,12 +76,12 @@ export default async function CommercialPage() {
           className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow"
         >
           <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
-              <Wallet className="h-5 w-5 text-green-600" />
+            <div className="w-10 h-10 bg-lamanne-primary/10 rounded-xl flex items-center justify-center">
+              <Wallet className="h-5 w-5 text-lamanne-primary" />
             </div>
             <ArrowRight className="h-4 w-4 text-gray-300" />
           </div>
-          <p className="text-2xl font-black text-gray-900">{formatCFA(todayTotal)}</p>
+          <p className="font-sora text-2xl font-black text-gray-900">{formatCFA(todayTotal)}</p>
           <p className="text-sm text-gray-500 mt-0.5">Encaissé aujourd&apos;hui</p>
         </Link>
 
@@ -90,12 +90,12 @@ export default async function CommercialPage() {
           className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow"
         >
           <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
-              <Users className="h-5 w-5 text-blue-600" />
+            <div className="w-10 h-10 bg-lamanne-primary/10 rounded-xl flex items-center justify-center">
+              <Users className="h-5 w-5 text-lamanne-primary" />
             </div>
             <ArrowRight className="h-4 w-4 text-gray-300" />
           </div>
-          <p className="text-2xl font-black text-gray-900">{clientIds.length}</p>
+          <p className="font-sora text-2xl font-black text-gray-900">{clientIds.length}</p>
           <p className="text-sm text-gray-500 mt-0.5">Total clients assignés</p>
         </Link>
       </div>

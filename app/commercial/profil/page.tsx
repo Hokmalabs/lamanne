@@ -46,7 +46,7 @@ export default function CommercialProfilPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
-        <div className="h-6 w-6 border-2 border-[#0F5132] border-t-transparent rounded-full animate-spin" />
+        <div className="h-6 w-6 border-2 border-lamanne-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -61,17 +61,17 @@ export default function CommercialProfilPage() {
   return (
     <div className="space-y-6 max-w-lg">
       <div>
-        <h1 className="text-2xl font-black text-gray-900">Mon profil</h1>
+        <h1 className="font-sora text-2xl font-black text-gray-900">Mon profil</h1>
         <p className="text-gray-400 text-sm mt-0.5">Informations de votre compte</p>
       </div>
 
       {/* Avatar + name */}
-      <div className="bg-[#0F5132] rounded-2xl p-6 flex items-center gap-4" style={{ boxShadow: "var(--shadow-sm)" }}>
+      <div className="bg-lamanne-primary rounded-2xl p-6 flex items-center gap-4" style={{ boxShadow: "var(--shadow-sm)" }}>
         <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
           <span className="text-white font-black text-xl">{initials}</span>
         </div>
-        <div>
-          <p className="text-white font-black text-xl">{profile?.full_name ?? "—"}</p>
+        <div className="min-w-0 flex-1">
+          <p className="font-sora text-white font-black text-xl truncate">{profile?.full_name ?? "—"}</p>
           <span className="inline-flex items-center gap-1 bg-white/20 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full mt-1">
             <Shield className="h-3 w-3" />
             Commercial
@@ -84,7 +84,7 @@ export default function CommercialProfilPage() {
         {profile?.phone && (
           <div className="flex items-center gap-3 px-5 py-4">
             <div className="w-9 h-9 rounded-xl bg-[#FEF3D7] flex items-center justify-center flex-shrink-0">
-              <Phone className="h-4 w-4 text-[#0F5132]" />
+              <Phone className="h-4 w-4 text-lamanne-primary" />
             </div>
             <div>
               <p className="text-xs text-gray-400">Téléphone</p>
@@ -95,7 +95,7 @@ export default function CommercialProfilPage() {
         {profile?.email && !profile.email.startsWith("phone_") && (
           <div className="flex items-center gap-3 px-5 py-4">
             <div className="w-9 h-9 rounded-xl bg-[#FEF3D7] flex items-center justify-center flex-shrink-0">
-              <Mail className="h-4 w-4 text-[#0F5132]" />
+              <Mail className="h-4 w-4 text-lamanne-primary" />
             </div>
             <div>
               <p className="text-xs text-gray-400">Email</p>
@@ -105,7 +105,7 @@ export default function CommercialProfilPage() {
         )}
         <div className="flex items-center gap-3 px-5 py-4">
           <div className="w-9 h-9 rounded-xl bg-[#FEF3D7] flex items-center justify-center flex-shrink-0">
-            <User className="h-4 w-4 text-[#0F5132]" />
+            <User className="h-4 w-4 text-lamanne-primary" />
           </div>
           <div>
             <p className="text-xs text-gray-400">Rôle</p>
