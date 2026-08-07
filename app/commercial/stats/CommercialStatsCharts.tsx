@@ -15,7 +15,7 @@ function CustomTooltip({ active, payload, label }: any) {
     return (
       <div className="bg-white rounded-xl shadow-lg border border-gray-100 px-3 py-2">
         <p className="text-xs text-gray-500">{label}</p>
-        <p className="font-black text-[#0F5132] text-sm">{formatCFA(payload[0].value)}</p>
+        <p className="font-sora font-black text-lamanne-primary text-sm">{formatCFA(payload[0].value)}</p>
       </div>
     );
   }
@@ -43,7 +43,7 @@ export default function CommercialStatsCharts({
     <div className="space-y-5">
       {/* Bar chart */}
       <div className="bg-white rounded-2xl p-5" style={{ boxShadow: "var(--shadow-sm)" }}>
-        <h2 className="font-bold text-gray-900 mb-4">Versements des 7 derniers jours</h2>
+        <h2 className="font-sora font-bold text-gray-900 mb-4">Versements des 7 derniers jours</h2>
         {chartData.every((d) => d.montant === 0) ? (
           <div className="h-40 flex items-center justify-center text-gray-400 text-sm">
             Aucun versement cette semaine
@@ -63,7 +63,7 @@ export default function CommercialStatsCharts({
                 {chartData.map((entry, i) => (
                   <Cell
                     key={i}
-                    fill={entry.montant === maxVal && entry.montant > 0 ? "#0F5132" : "#FEF3D7"}
+                    fill={entry.montant === maxVal && entry.montant > 0 ? "#0F5132" : "#D4E4DC"}
                   />
                 ))}
               </Bar>
@@ -75,19 +75,19 @@ export default function CommercialStatsCharts({
       {/* Monthly target */}
       <div className="bg-white rounded-2xl p-5" style={{ boxShadow: "var(--shadow-sm)" }}>
         <div className="flex items-center gap-2 mb-3">
-          <Target className="h-5 w-5 text-[#0F5132]" />
-          <h2 className="font-bold text-gray-900">Objectif mensuel</h2>
+          <Target className="h-5 w-5 text-lamanne-primary" />
+          <h2 className="font-sora font-bold text-gray-900">Objectif mensuel</h2>
         </div>
         {objectif > 0 ? (
           <>
             <div className="flex items-end justify-between mb-2">
               <div>
-                <p className="text-2xl font-black text-gray-900">{formatCFA(totalMois)}</p>
+                <p className="font-sora text-2xl font-black text-gray-900">{formatCFA(totalMois)}</p>
                 <p className="text-sm text-gray-400">sur {formatCFA(objectif)} objectif</p>
               </div>
               <span
                 className="text-lg font-black"
-                style={{ color: progression >= 100 ? "#2D9B6F" : progression >= 50 ? "#F5A623" : "#0F5132" }}
+                style={{ color: progression >= 100 ? "#2D9B6F" : progression >= 50 ? "#F2A900" : "#9CA3AF" }}
               >
                 {progression}%
               </span>
@@ -97,7 +97,7 @@ export default function CommercialStatsCharts({
                 className="h-full rounded-full transition-all"
                 style={{
                   width: `${progression}%`,
-                  background: progression >= 100 ? "#2D9B6F" : progression >= 50 ? "#F5A623" : "#0F5132",
+                  background: progression >= 100 ? "#2D9B6F" : progression >= 50 ? "#F2A900" : "#9CA3AF",
                 }}
               />
             </div>
@@ -114,7 +114,7 @@ export default function CommercialStatsCharts({
         <div className="bg-white rounded-2xl p-5" style={{ boxShadow: "var(--shadow-sm)" }}>
           <div className="flex items-center gap-2 mb-4">
             <Trophy className="h-5 w-5 text-[#F5A623]" />
-            <h2 className="font-bold text-gray-900">Top 3 clients ce mois</h2>
+            <h2 className="font-sora font-bold text-gray-900">Top 3 clients ce mois</h2>
           </div>
           <div className="space-y-3">
             {topClients.map((c, i) => (
@@ -148,7 +148,7 @@ export default function CommercialStatsCharts({
 
       {/* Completion rate */}
       <div className="bg-white rounded-2xl p-5" style={{ boxShadow: "var(--shadow-sm)" }}>
-        <h2 className="font-bold text-gray-900 mb-3">Taux de complétion global</h2>
+        <h2 className="font-sora font-bold text-gray-900 mb-3">Taux de complétion global</h2>
         <div className="flex items-center gap-4">
           <div className="flex-1">
             <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -156,12 +156,12 @@ export default function CommercialStatsCharts({
                 className="h-full rounded-full transition-all"
                 style={{
                   width: `${completionRate}%`,
-                  background: completionRate >= 70 ? "#2D9B6F" : completionRate >= 30 ? "#F5A623" : "#E55353",
+                  background: completionRate >= 70 ? "#2D9B6F" : completionRate >= 30 ? "#F2A900" : "#9CA3AF",
                 }}
               />
             </div>
           </div>
-          <span className="text-2xl font-black text-gray-900 w-16 text-right">{completionRate}%</span>
+          <span className="font-sora text-2xl font-black text-gray-900 w-16 text-right">{completionRate}%</span>
         </div>
         <p className="text-xs text-gray-400 mt-2">
           Part des cotisations terminées parmi toutes les cotisations de vos clients.

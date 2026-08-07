@@ -17,7 +17,6 @@ export default async function CommercialStatsPage() {
   if (!user) return null;
 
   const commercialId = user.id;
-  console.log("[Stats] commercialId:", commercialId);
 
   // 1. Commercial profile (for monthly_target)
   const { data: commercialProfile } = await admin
@@ -27,7 +26,6 @@ export default async function CommercialStatsPage() {
     .single();
 
   const objectif = (commercialProfile as any)?.monthly_target ?? 0;
-  console.log("[Stats] objectif:", objectif);
 
   // 2. Clients assigned to this commercial
   const { data: clients } = await admin
@@ -37,7 +35,6 @@ export default async function CommercialStatsPage() {
     .eq("role", "user");
 
   const clientIds = (clients ?? []).map((c) => c.id);
-  console.log("[Stats] clientIds:", clientIds);
 
   // === Defaults ===
   let totalMois = 0;
@@ -66,7 +63,6 @@ export default async function CommercialStatsPage() {
       .in("user_id", clientIds);
 
     const cotIds = (allCots ?? []).map((c) => c.id);
-    console.log("[Stats] cotIds count:", cotIds.length);
 
     // 4. Clients actifs (at least one active cotisation)
     clientsActifs = new Set(
@@ -77,7 +73,6 @@ export default async function CommercialStatsPage() {
     const terminees = (allCots ?? []).filter((c) => c.status === "completed").length;
     const totalCotis = (allCots ?? []).length;
     tauxCompletion = totalCotis > 0 ? Math.round((terminees / totalCotis) * 100) : 0;
-    console.log("[Stats] tauxCompletion:", tauxCompletion, "terminees:", terminees, "total:", totalCotis);
 
     if (cotIds.length > 0) {
       const startOfMonth = new Date();
@@ -94,7 +89,6 @@ export default async function CommercialStatsPage() {
 
       totalMois = (monthPayments ?? []).reduce((s, p) => s + (p.amount ?? 0), 0);
       nbVersementsMois = monthPayments?.length ?? 0;
-      console.log("[Stats] monthPayments count:", nbVersementsMois, "totalMois:", totalMois);
 
       // 7. 7-day chart — filter monthly payments by day
       chartData = last7Days.map((date) => {
@@ -177,8 +171,6 @@ export default async function CommercialStatsPage() {
         .sort((a, b) => b.total - a.total)
         .slice(0, 3)
         .map((c) => ({ name: c.name, totalMois: c.total, nbVersements: c.count }));
-
-      console.log("[Stats] top3:", top3);
     }
   }
 
@@ -194,7 +186,7 @@ export default async function CommercialStatsPage() {
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-black text-gray-900">Mes statistiques</h1>
+        <h1 className="font-sora text-2xl font-black text-gray-900">Mes statistiques</h1>
         <p className="text-gray-400 text-sm mt-0.5">
           {nbVersementsMois} versement{nbVersementsMois !== 1 ? "s" : ""} ce mois
         </p>
@@ -207,7 +199,7 @@ export default async function CommercialStatsPage() {
             <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center mb-2">
               <Icon className="h-5 w-5 text-white" />
             </div>
-            <p className="text-2xl font-black text-white">{value}</p>
+            <p className="font-sora text-2xl font-black text-white">{value}</p>
             <p className="text-xs text-white/60 mt-0.5">{label}</p>
           </div>
         ))}
