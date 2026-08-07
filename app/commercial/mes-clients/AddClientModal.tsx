@@ -53,7 +53,7 @@ export default function AddClientModal({ commercialId, fab }: { commercialId: st
       {fab ? (
         <button
           onClick={() => setOpen(true)}
-          className="w-14 h-14 rounded-full bg-[#0F5132] text-white flex items-center justify-center shadow-lg hover:bg-[#0F5132]/90 transition-all active:scale-95"
+          className="w-14 h-14 rounded-full bg-lamanne-primary text-white flex items-center justify-center shadow-lg hover:bg-lamanne-primary/90 transition-all active:scale-95"
           aria-label="Ajouter un client"
         >
           <UserPlus className="h-6 w-6" />
@@ -66,9 +66,9 @@ export default function AddClientModal({ commercialId, fab }: { commercialId: st
       )}
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 py-6 overflow-y-auto">
           <div className="absolute inset-0 bg-black/50" onClick={handleClose} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 z-10">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 z-10 max-h-[calc(100vh-3rem)] overflow-y-auto my-auto">
             {success ? (
               <div className="text-center py-6">
                 <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -80,7 +80,7 @@ export default function AddClientModal({ commercialId, fab }: { commercialId: st
             ) : (
               <>
                 <div className="flex items-center justify-between mb-5">
-                  <h2 className="text-lg font-black text-gray-900">Nouveau client</h2>
+                  <h2 className="font-sora text-lg font-black text-gray-900">Nouveau client</h2>
                   <button onClick={handleClose} className="p-1.5 rounded-lg hover:bg-gray-100">
                     <X className="h-4 w-4 text-gray-500" />
                   </button>

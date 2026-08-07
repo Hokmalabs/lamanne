@@ -67,9 +67,9 @@ export default function RemboursementModal({
       </Button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 py-6 overflow-y-auto">
           <div className="absolute inset-0 bg-black/50" onClick={() => !loading && setOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 z-10">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 z-10 max-h-[calc(100vh-3rem)] overflow-y-auto my-auto">
             {success ? (
               <div className="text-center py-4">
                 <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -81,7 +81,7 @@ export default function RemboursementModal({
             ) : (
               <>
                 <div className="flex items-center justify-between mb-5">
-                  <h2 className="font-black text-gray-900">Demande de remboursement</h2>
+                  <h2 className="font-sora font-black text-gray-900">Demande de remboursement</h2>
                   <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100">
                     <X className="h-4 w-4 text-gray-500" />
                   </button>
