@@ -7,7 +7,6 @@ import { Cotisation, Product } from "@/lib/types";
 import { formatCFA, calculateProgress, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ProgressBar } from "@/components/progress-bar";
 import {
   Plus,
   ShoppingBag,
@@ -106,7 +105,7 @@ function VersementModal({
       <div className="bg-lamanne-light rounded-xl p-4 space-y-2 text-sm">
         <div className="flex justify-between">
           <span className="text-gray-600">Montant restant</span>
-          <span className="font-black text-lamanne-primary">{formatCFA(cotisation.amount_remaining)}</span>
+          <span className="font-sora font-black text-lamanne-primary">{formatCFA(cotisation.amount_remaining)}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-600">Date limite</span>
@@ -132,6 +131,7 @@ function VersementModal({
           value={amount}
           onChange={(e) => { setError(null); setAmount(e.target.value === "" ? "" : Number(e.target.value)); }}
           className="w-full border border-gray-200 rounded-xl px-4 py-3 text-lg font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-lamanne-primary"
+          style={{ fontSize: "16px" }}
         />
         <p className="text-xs text-gray-400">
           Min 1 000 FCFA — Max {formatCFA(cotisation.amount_remaining)}
@@ -255,8 +255,8 @@ function CotisationItem({
             <div className="w-10 h-10 bg-lamanne-success/10 rounded-xl flex items-center justify-center">
               <CheckCircle className="h-5 w-5 text-lamanne-success" />
             </div>
-            <div>
-              <p className="font-semibold text-gray-900 text-sm">{cotisation.product.name}</p>
+            <div className="min-w-0 flex-1">
+              <p className="font-sora font-semibold text-gray-900 text-sm truncate">{cotisation.product.name}</p>
               {cotisation.product.is_lot && (
                 <span className="text-xs bg-lamanne-accent/10 text-lamanne-accent font-semibold px-2 py-0.5 rounded-full">LOT</span>
               )}
@@ -265,12 +265,12 @@ function CotisationItem({
           <Badge variant="success">Prêt à retirer</Badge>
         </div>
         {cotisation.withdrawal_code && (
-          <div className="bg-lamanne-success/10 rounded-xl p-4 text-center">
+          <div className="bg-lamanne-primary/5 rounded-xl p-4 text-center">
             <div className="flex items-center justify-center gap-2 mb-1">
               <QrCode className="h-4 w-4 text-lamanne-success" />
               <p className="text-xs font-semibold text-lamanne-success">Code de retrait</p>
             </div>
-            <p className="text-3xl font-black text-lamanne-success tracking-widest">{cotisation.withdrawal_code}</p>
+            <p className="font-sora text-3xl font-black text-lamanne-primary tracking-widest">{cotisation.withdrawal_code}</p>
             <p className="text-xs text-gray-500 mt-2">Présentez ce code en boutique</p>
           </div>
         )}
@@ -288,8 +288,8 @@ function CotisationItem({
               ? <Package className="h-5 w-5 text-lamanne-accent" />
               : <ShoppingBag className="h-5 w-5 text-lamanne-accent" />}
           </div>
-          <div>
-            <p className="font-semibold text-gray-900 text-sm leading-snug">{cotisation.product.name}</p>
+          <div className="min-w-0 flex-1">
+            <p className="font-sora font-semibold text-gray-900 text-sm leading-snug truncate">{cotisation.product.name}</p>
             <p className="text-xs text-gray-400 mt-0.5">Démarrée le {formatDate(cotisation.created_at)}</p>
           </div>
         </div>
@@ -315,22 +315,24 @@ function CotisationItem({
           <span>{formatCFA(cotisation.amount_paid)} payés</span>
           <span className="font-semibold text-gray-700">{progress}%</span>
         </div>
-        <ProgressBar value={progress} />
+        <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+          <div className="progress-bar-fill h-full rounded-full" style={{ width: `${progress}%` }} />
+        </div>
       </div>
 
       {/* Montants */}
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="bg-gray-50 rounded-xl py-2 px-1">
           <p className="text-xs text-gray-400">Total</p>
-          <p className="text-xs font-bold text-gray-700">{formatCFA(cotisation.total_price)}</p>
+          <p className="font-sora text-xs font-bold text-gray-700">{formatCFA(cotisation.total_price)}</p>
         </div>
         <div className="bg-lamanne-light rounded-xl py-2 px-1">
           <p className="text-xs text-gray-400">Payé</p>
-          <p className="text-xs font-bold text-lamanne-primary">{formatCFA(cotisation.amount_paid)}</p>
+          <p className="font-sora text-xs font-bold text-lamanne-primary">{formatCFA(cotisation.amount_paid)}</p>
         </div>
         <div className="bg-red-50 rounded-xl py-2 px-1">
           <p className="text-xs text-gray-400">Restant</p>
-          <p className="text-xs font-bold text-red-600">{formatCFA(cotisation.amount_remaining)}</p>
+          <p className="font-sora text-xs font-bold text-red-600">{formatCFA(cotisation.amount_remaining)}</p>
         </div>
       </div>
 
@@ -399,7 +401,7 @@ function CotisationsContent() {
     <div className="max-w-2xl mx-auto space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-gray-900">Mes cotisations</h1>
+          <h1 className="font-sora text-2xl font-black text-gray-900">Mes cotisations</h1>
           <p className="text-gray-500 text-sm mt-0.5">
             {loading ? "Chargement..." : `${cotisations.length} cotisation(s)`}
           </p>
