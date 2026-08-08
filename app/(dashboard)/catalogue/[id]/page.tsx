@@ -166,8 +166,8 @@ export default function ProductDetailPage() {
               {product.category.name}
             </p>
           )}
-          <h1 className="text-xl font-black text-gray-900 leading-snug">{product.name}</h1>
-          <p className="text-2xl font-black text-lamanne-primary mt-2">{formatCFA(product.price)}</p>
+          <h1 className="font-sora text-xl font-black text-gray-900 leading-snug">{product.name}</h1>
+          <p className="font-sora text-2xl font-black text-lamanne-primary mt-2">{formatCFA(product.price)}</p>
           {product.description && (
             <p className="text-sm text-gray-500 mt-2 leading-relaxed">{product.description}</p>
           )}
@@ -198,19 +198,19 @@ export default function ProductDetailPage() {
       )}
 
       {/* Délai */}
-      <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex gap-3">
-        <Calendar className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+      <div className="bg-lamanne-light border border-lamanne-primary/20 rounded-2xl p-4 flex gap-3">
+        <Calendar className="h-5 w-5 text-lamanne-primary flex-shrink-0 mt-0.5" />
         <div className="text-sm">
-          <p className="font-semibold text-blue-800">
+          <p className="font-semibold text-lamanne-primary">
             Vous avez {product.max_tranches} mois pour compléter votre cotisation
           </p>
           {deadline && (
-            <p className="text-blue-600 mt-0.5">
+            <p className="text-lamanne-primary mt-0.5">
               Date limite : {formatDate(deadline.toISOString())}
             </p>
           )}
           {(product as any).delivery_days && (
-            <p className="text-blue-600 mt-1">
+            <p className="text-lamanne-primary mt-1">
               Livraison estimée : {(product as any).delivery_days} jour{(product as any).delivery_days > 1 ? "s" : ""} après la fin de cotisation
             </p>
           )}
@@ -236,7 +236,7 @@ export default function ProductDetailPage() {
       {/* Configurateur */}
       {!existingCotisation && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5">
-          <h2 className="font-bold text-gray-900">Démarrer ma cotisation</h2>
+          <h2 className="font-sora font-bold text-gray-900">Démarrer ma cotisation</h2>
 
           {errorMsg && (
             <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
@@ -258,6 +258,7 @@ export default function ProductDetailPage() {
               onChange={(e) => setFirstPayment(e.target.value === "" ? "" : Number(e.target.value))}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-lg font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-lamanne-primary"
               placeholder="ex : 25 000"
+              style={{ fontSize: "16px" }}
             />
             <p className="text-xs text-gray-400">Minimum 1 000 FCFA</p>
           </div>
