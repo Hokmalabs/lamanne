@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Sora } from "next/font/google";
 import "./globals.css";
 import InstallPWA from "@/components/InstallPWA";
+import AppIntro from "@/components/AppIntro";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -46,9 +47,11 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="LAMANNE" />
-        <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
       </head>
       <body className="font-sans antialiased">
+        <AppIntro />
         {children}
         <InstallPWA />
       </body>
