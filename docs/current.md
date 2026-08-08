@@ -1,59 +1,84 @@
 # LAMANNE — État courant
 
-*Dernière mise à jour : 01 juillet 2026*
+*Dernière mise à jour : 08 août 2026*
 
 ## Vue d'ensemble
 
-Projet à ~85% d'avancement.
+Projet à ~90% d'avancement.
 
-- Sécurité : 100% ✅
-- Fonctionnel métier : 95% (2 bugs UX à fixer)
-- UI/design : 40% (refonte premium prévue)
-- Intégration paiement : 0% (attente clés GeniusPay)
-- Documentation : 20% (ce fichier + les 4 autres viennent d'être créés)
+- Sécurité : 100% (chantier versements client réparé cette session)
+- Fonctionnel métier : ~98% (cœur transactionnel réparé, versements fonctionnels des 2 côtés)
+- UI/design : ~70% — portails commercial et client 100% refaits ; admin NON refait (brut)
+- Intégration paiement : 0% (clés GeniusPay reçues, intégration à faire)
+- PWA / branding : icône + intro animée + logo unifié faits
 - Observabilité : 0% (à installer avant lancement)
 
-## Bugs prioritaires en cours
+## Fait à la session du 8 août 2026
 
-### Bug 1 — Gestion catégories admin ✅ RÉSOLU partiellement
-- 8 nouvelles catégories créées en base (Électroménager, Appareils électroniques, Cuisine, Meubles, Scolaire, Beauté, Vêtements, Divers)
-- 58 anciens produits restent dans catégorie "Test" — à reclasser progressivement via UI de modification produit
-- **Page `/admin/categories`** (créer/éditer/supprimer via UI) NON codée — reportée à la session refonte UI
+### Chantier sécurité CRITIQUE — versements réparés (le plus important)
+Découverte : le cœur transactionnel de LAMANNE ne fonctionnait pas.
+- Les 3 pages client faisaient des writes directs navigateur (insert cotisations/payments)
+  bloqués par les RLS → création + versements client cassés en prod.
+- La RPC record_payment appelée par l'API commerciale versement n'existait pas en base
+  → versements commercial cassés aussi.
+- Codes de retrait générés côté client avec Math.random (prévisible).
 
-### Bug 2 — Commercial "choisir client" cassé 🔴 EN COURS
-- Symptôme : clic sur un client dans la liste ne déclenche rien
-- Cause probable : code mort dans `/commercial/clients/` qui conflit avec `/commercial/mes-clients/`
-- Flow attendu documenté dans `docs/business.md` (Flow A et Flow B)
-- **À fixer en priorité**
+Corrections :
+- RPC record_payment créée (supabase/record-payment.sql) : atomique (FOR UPDATE),
+  idempotente, génère withdrawal_code 6 chiffres unique à completed, refuse cas invalides.
+  Testée sur 4 cas. SECURITY DEFINER.
+- 2 API routes client : /api/client/nouvelle-cotisation + /api/client/versement.
+- 3 pages client migrées vers ces API (fin des writes directs + Math.random).
+- La RPC a réparé le versement commercial du même coup.
 
-### Bug 3 — Adaptation écrans / responsive
-- Cards produits avec texte tronqué (screenshot mobile)
-- Badges superposés au stock
-- À traiter dans la refonte UI globale
+### Refonte design — COMMERCIAL 100%
+dashboard, mes-clients (liste + fiche), catalogue (liste + produit), encaissements, stats,
+profil, modals. Vert/or, Sora, mobile-first, ProgressRing, barres dégradées.
+
+### Refonte design — CLIENT 100%
+catalogue + produit, cotisations (liste + détail héros anneau + code retrait), historique,
+profil, catalogue public, auth (login/register). Flow ?for_client= (A+B) branché, bug de
+flow corrigé (contexte perdu + clients bloqués RLS → via /api/commercial/clients).
+
+### Migration palette globale
+Bleu (#0D3B8C/#378ADD) → vert/or (#0F5132/#F2A900). Config + 29 fichiers + sémantique.
+
+### PWA / branding
+Icône LAMANNE (public/icons/icon-master.svg + PNG), manifeste corrigé, AppIntro animé,
+composant Logo remplaçant "LM" partout.
+
+## Prochaine priorité (nouvelle conversation)
+1. Portail ADMIN — refonte design + AUDIT sécurité (vérifier writes directs / RPC manquantes
+   comme côté client). Écrans : dashboard, produits, catégories, équipe, clients, cotisations,
+   versements, retraits, remboursements, admin-login. Portail du gérant FAMIENWA.
+2. GeniusPay — clés reçues, intégration paiement en ligne.
+
+## Dettes techniques
+- Page orpheline app/commercial/mes-clients/[clientId]/nouvelle-cotisation (code mort, supprimer).
+- API /api/commercial/clients à harmoniser sur helpers standard.
+- Démarrage cotisation non atomique (insert cotisation + payment séparés) client + commercial.
+- Deadline calculée en double (trigger + JS, inoffensif).
+- product-card.tsx en hex dur au lieu de classes (cosmétique).
+- Idempotence versement : clé par clic (protège rejeux réseau, pas double-clic strict).
 
 ## Chantiers restants
+GeniusPay ; admin (refonte + audit) ; cron expirations ; export CSV /admin/versements ;
+domaine lamanne.ci ; guide FAMIENWA .docx ; refonte auth (Google + Twilio WhatsApp OTP) ;
+Resend emails ; observabilité (Sentry + Vercel Spend + Uptime Robot) ; capacity model ;
+tests E2E ; mise en prod.
 
-1. **Fix Bug 2** — flow commercial (en cours)
-2. **Intégration GeniusPay** — dès réception des clés API par le gérant FAMIENWA (2-3h de code)
-3. **Refonte UI premium** — session dédiée (2-3h)
-4. **Cron expirations** — Vercel Cron pour relances automatiques (30 min)
-5. **API export CSV `/admin/versements`** (20 min)
-6. **Domaine `lamanne.ci`** — achat via lenomdedomaine.ci (9 000 FCFA/an) + config DNS Vercel
-7. **Guide FAMIENWA** en .docx pour les commerciaux
-8. **Refonte auth** — Google OAuth + Twilio WhatsApp OTP, drop email pour clients (semaine dédiée)
-9. **Resend emails transactionnels** — bienvenue, versement, code retrait, expiration
-10. **Observabilité** — Sentry + Vercel Spend alerts + Uptime Robot
-11. **Capacity model spreadsheet** — coûts vs users à 500 / 1000 / 5000
-12. **Documentation finale** — README public, procédures déploiement, runbook
-13. **Tests E2E manuels** — parcours complet client/commercial/admin
-14. **Mise en prod finale** avec test réel FAMIENWA (100–500 clients existants)
+## Infrastructure
+- Deployment Protection Vercel DÉSACTIVÉE cette session (test mobile previews). Réactiver
+  avant lancement si besoin.
+- Upgrade Vercel Pro avant lancement (Firewall + Spend). Bloqueur : cartes africaines
+  refusées par Stripe (tester UBA débit, Chipper Cash, Eversend).
+- Attack Challenge Mode OFF ; AI Bots blocker ON.
 
-## Décisions d'infrastructure en suspens
+## Objectif court terme
+Démo propre pour le gérant FAMIENWA (M. N'GUESSAN Kouamé Félix). Commercial + client soignés,
+admin à faire. Pas de vrais users en prod (phase dev).
 
-- **Upgrade Vercel Hobby → Pro** : indispensable avant lancement public (rate limiting Firewall + Spend Management + quota CPU 4x). Bloqueur potentiel : cartes bancaires africaines refusées par Stripe. Alternatives à tester : UBA débit classique, Chipper Cash, Eversend.
-- **Attack Challenge Mode Vercel** : disponible gratuitement mais volontairement OFF (ajoute 1-3s de latence au premier hit). Activable en 1 clic si attaque DDoS détectée.
-- **AI Bots blocker** : activé.
-
-## Contexte session juillet 2026
-
-Reprise du projet le 01 juillet 2026 après une pause de 6 semaines (dernière session mi-mai). Focus : nettoyer les 2 bugs identifiés au test de reprise puis intégrer GeniusPay dès validation.
+## Méthode
+Branche par lot, commits fréquents, relecture ligne par ligne, merge après test mobile réel.
+Prompts Claude Code ciblés (fichiers autorisés + interdictions + grep vérif). Reconnaissance
+(cat/grep) en terminal direct. Reco CTO décisive attendue.
