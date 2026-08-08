@@ -123,7 +123,7 @@ export default function ProfilPage() {
   return (
     <div className="max-w-lg mx-auto space-y-5">
       {/* En-tête */}
-      <h1 className="text-2xl font-black text-gray-900">Mon profil</h1>
+      <h1 className="font-sora text-2xl font-black text-gray-900">Mon profil</h1>
 
       {successMsg && (
         <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl">
@@ -132,23 +132,25 @@ export default function ProfilPage() {
       )}
 
       {/* Carte profil */}
-      <div className="bg-lamanne-primary rounded-2xl p-6 text-center">
-        <Avatar className="h-20 w-20 mx-auto mb-4 border-4 border-white/20">
-          <AvatarFallback className="text-xl font-black bg-lamanne-accent text-white">
+      <div className="bg-lamanne-primary rounded-2xl p-6 flex items-center gap-4">
+        <Avatar className="h-16 w-16 flex-shrink-0 border-4 border-white/20">
+          <AvatarFallback className="font-sora text-xl font-black bg-white/20 text-white">
             {initials}
           </AvatarFallback>
         </Avatar>
-        <h2 className="text-xl font-black text-white">
-          {profile?.full_name || "—"}
-        </h2>
-        {profile?.created_at && (
-          <p className="text-white/60 text-sm mt-1">
-            Membre depuis {formatDate(profile.created_at)}
-          </p>
-        )}
-        <div className="mt-4 inline-flex items-center gap-2 bg-white/15 text-white text-sm px-4 py-2 rounded-full">
-          <span className="w-2 h-2 bg-lamanne-success rounded-full" />
-          Compte actif
+        <div className="min-w-0 flex-1">
+          <h2 className="font-sora text-xl font-black text-white truncate">
+            {profile?.full_name || "—"}
+          </h2>
+          {profile?.created_at && (
+            <p className="text-white/60 text-sm mt-1">
+              Membre depuis {formatDate(profile.created_at)}
+            </p>
+          )}
+          <div className="mt-3 inline-flex items-center gap-2 bg-white/15 text-white text-sm px-4 py-2 rounded-full">
+            <span className="w-2 h-2 bg-lamanne-success rounded-full" />
+            Compte actif
+          </div>
         </div>
       </div>
 
@@ -252,8 +254,8 @@ export default function ProfilPage() {
               const Icon = item.icon;
               return (
                 <div key={item.label} className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-lamanne-light rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Icon className="h-5 w-5 text-lamanne-accent" />
+                  <div className="w-10 h-10 bg-[#FEF3D7] rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Icon className="h-5 w-5 text-lamanne-primary" />
                   </div>
                   <div>
                     <p className="text-xs text-gray-400">{item.label}</p>
@@ -279,7 +281,7 @@ export default function ProfilPage() {
             Partagez votre code avec vos proches. Ils bénéficient d&apos;un accueil prioritaire !
           </p>
           <div className="flex items-center gap-2">
-            <div className="flex-1 bg-[#F8F9FC] rounded-xl px-4 py-3 font-black text-xl text-[#0F5132] tracking-widest text-center">
+            <div className="flex-1 bg-[#F8F9FC] rounded-xl px-4 py-3 font-black text-xl text-lamanne-primary tracking-widest text-center">
               {profile.referral_code}
             </div>
             <button
@@ -288,7 +290,7 @@ export default function ProfilPage() {
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
               }}
-              className="p-3 rounded-xl bg-[#FEF3D7] text-[#0F5132] hover:bg-[#0F5132]/20 transition-colors"
+              className="p-3 rounded-xl bg-[#FEF3D7] text-lamanne-primary hover:bg-lamanne-primary/20 transition-colors"
             >
               {copied ? <CheckCheck className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
             </button>

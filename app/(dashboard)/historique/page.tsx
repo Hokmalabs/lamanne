@@ -51,8 +51,8 @@ function CotisationRow({ cotisation }: { cotisation: CotisationWithProduct }) {
               ? <Package className="h-5 w-5 text-lamanne-accent" />
               : <ShoppingBag className="h-5 w-5 text-lamanne-accent" />}
           </div>
-          <div>
-            <p className="font-semibold text-gray-900 text-sm leading-snug">
+          <div className="min-w-0 flex-1">
+            <p className="font-sora font-semibold text-gray-900 text-sm leading-snug truncate">
               {cotisation.product.name}
             </p>
             <div className="flex items-center gap-1.5 mt-0.5">
@@ -78,15 +78,15 @@ function CotisationRow({ cotisation }: { cotisation: CotisationWithProduct }) {
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="bg-gray-50 rounded-xl py-2 px-1">
           <p className="text-xs text-gray-400">Total</p>
-          <p className="text-xs font-bold text-gray-700">{formatCFA(cotisation.total_price)}</p>
+          <p className="font-sora text-xs font-bold text-gray-700">{formatCFA(cotisation.total_price)}</p>
         </div>
         <div className="bg-lamanne-light rounded-xl py-2 px-1">
           <p className="text-xs text-gray-400">Payé</p>
-          <p className="text-xs font-bold text-lamanne-primary">{formatCFA(cotisation.amount_paid)}</p>
+          <p className="font-sora text-xs font-bold text-lamanne-primary">{formatCFA(cotisation.amount_paid)}</p>
         </div>
         <div className={cn("rounded-xl py-2 px-1", cotisation.status === "cancelled" ? "bg-orange-50" : "bg-red-50")}>
           <p className="text-xs text-gray-400">Restant</p>
-          <p className={cn("text-xs font-bold", cotisation.status === "cancelled" ? "text-orange-600" : "text-red-600")}>
+          <p className={cn("font-sora text-xs font-bold", cotisation.status === "cancelled" ? "text-orange-600" : "text-red-600")}>
             {formatCFA(cotisation.amount_remaining)}
           </p>
         </div>
@@ -97,7 +97,7 @@ function CotisationRow({ cotisation }: { cotisation: CotisationWithProduct }) {
           <QrCode className="h-5 w-5 text-lamanne-success flex-shrink-0" />
           <div className="flex-1">
             <p className="text-xs text-lamanne-success font-medium">Code de retrait</p>
-            <p className="text-xl font-black text-lamanne-success tracking-widest">
+            <p className="font-sora text-xl font-black text-lamanne-success tracking-widest">
               {cotisation.withdrawal_code}
             </p>
           </div>
@@ -123,7 +123,7 @@ function CotisationRow({ cotisation }: { cotisation: CotisationWithProduct }) {
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-gray-600">Montant remboursable</span>
-            <span className="font-semibold text-orange-700">
+            <span className="font-sora font-semibold text-orange-700">
               {formatCFA(cotisation.refund_amount ?? 0)}
             </span>
           </div>
@@ -208,7 +208,7 @@ export default function HistoriquePage() {
   return (
     <div className="max-w-2xl mx-auto space-y-5">
       <div>
-        <h1 className="text-2xl font-black text-gray-900">Historique</h1>
+        <h1 className="font-sora text-2xl font-black text-gray-900">Historique</h1>
         <p className="text-gray-500 text-sm mt-0.5">Toutes vos cotisations</p>
       </div>
 
@@ -290,7 +290,7 @@ export default function HistoriquePage() {
                     <p className="text-sm font-semibold text-gray-900 truncate">{p.productName}</p>
                     <p className="text-xs text-gray-400">{formatDate(p.paid_at)}</p>
                   </div>
-                  <p className="text-sm font-bold text-green-600 flex-shrink-0">
+                  <p className="font-sora text-sm font-bold text-green-600 flex-shrink-0">
                     +{formatCFA(p.amount)}
                   </p>
                 </div>
