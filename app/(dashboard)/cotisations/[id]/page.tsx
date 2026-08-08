@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { Cotisation, Product } from "@/lib/types";
 import { formatCFA, calculateProgress, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ProgressBar } from "@/components/progress-bar";
+import ProgressRing from "@/components/ProgressRing";
 import {
   ChevronLeft,
   CreditCard,
@@ -83,7 +83,7 @@ function VersementModal({
         <div className="bg-lamanne-light rounded-xl p-4 space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-gray-600">Montant restant</span>
-            <span className="font-black text-lamanne-primary">{formatCFA(cotisation.amount_remaining)}</span>
+            <span className="font-sora font-black text-lamanne-primary">{formatCFA(cotisation.amount_remaining)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">Date limite</span>
@@ -96,6 +96,7 @@ function VersementModal({
           <input type="number" min={1000} max={cotisation.amount_remaining} step={500} value={amount}
             onChange={(e) => { setError(null); setAmount(e.target.value === "" ? "" : Number(e.target.value)); }}
             className="w-full border border-gray-200 rounded-xl px-4 py-3 text-lg font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-lamanne-primary"
+            style={{ fontSize: "16px" }}
           />
           <p className="text-xs text-gray-400">Min 1 000 FCFA — Max {formatCFA(cotisation.amount_remaining)}</p>
         </div>
@@ -229,13 +230,13 @@ export default function CotisationDetailPage() {
 
   return (
     <div className="max-w-xl mx-auto space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <Link href="/cotisations" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700">
           <ChevronLeft className="h-4 w-4" />
           Mes cotisations
         </Link>
         {cotisation.status === "active" && (
-          <Button size="sm" onClick={() => setShowPay(true)}>
+          <Button onClick={() => setShowPay(true)} className="w-full sm:w-auto">
             <CreditCard className="h-4 w-4 mr-1.5" />
             Faire un versement
           </Button>
@@ -243,11 +244,11 @@ export default function CotisationDetailPage() {
       </div>
 
       {/* Infos produit + progression */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5">
         <div className="flex items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-xs text-lamanne-accent font-semibold uppercase tracking-wide mb-0.5">Cotisation</p>
-            <h1 className="text-lg font-black text-gray-900 leading-snug">{cotisation.product.name}</h1>
+            <h1 className="font-sora text-lg font-black text-gray-900 leading-snug">{cotisation.product.name}</h1>
             <p className="text-xs text-gray-400 mt-1">Démarrée le {formatDate(cotisation.created_at)}</p>
           </div>
           <div className="text-right flex-shrink-0">
@@ -257,26 +258,26 @@ export default function CotisationDetailPage() {
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <div className="flex justify-between text-xs text-gray-500">
-            <span>{formatCFA(cotisation.amount_paid)} payés sur {formatCFA(cotisation.total_price)}</span>
-            <span className="font-semibold text-gray-700">{progress}%</span>
-          </div>
-          <ProgressBar value={progress} />
+        {/* Anneau de progression — élément héros */}
+        <div className="flex flex-col items-center py-2">
+          <ProgressRing value={progress} size={140} strokeWidth={12} label="payé" />
+          <p className="text-sm text-gray-500 mt-3">
+            {formatCFA(cotisation.amount_paid)} sur {formatCFA(cotisation.total_price)}
+          </p>
         </div>
 
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="bg-gray-50 rounded-xl py-2 px-1">
             <p className="text-xs text-gray-400">Total</p>
-            <p className="text-xs font-bold text-gray-700">{formatCFA(cotisation.total_price)}</p>
+            <p className="font-sora text-xs font-bold text-gray-700">{formatCFA(cotisation.total_price)}</p>
           </div>
           <div className="bg-lamanne-light rounded-xl py-2 px-1">
             <p className="text-xs text-gray-400">Payé</p>
-            <p className="text-xs font-bold text-lamanne-primary">{formatCFA(cotisation.amount_paid)}</p>
+            <p className="font-sora text-xs font-bold text-lamanne-primary">{formatCFA(cotisation.amount_paid)}</p>
           </div>
           <div className="bg-red-50 rounded-xl py-2 px-1">
             <p className="text-xs text-gray-400">Restant</p>
-            <p className="text-xs font-bold text-red-600">{formatCFA(cotisation.amount_remaining)}</p>
+            <p className="font-sora text-xs font-bold text-red-600">{formatCFA(cotisation.amount_remaining)}</p>
           </div>
         </div>
 
@@ -298,22 +299,20 @@ export default function CotisationDetailPage() {
           </div>
         )}
 
-        {/* Code de retrait */}
+        {/* Code de retrait — moment fort */}
         {cotisation.status === "completed" && cotisation.withdrawal_code && (
-          <div className="bg-lamanne-success/10 rounded-xl p-4 text-center">
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <QrCode className="h-4 w-4 text-lamanne-success" />
-              <p className="text-xs font-semibold text-lamanne-success">Code de retrait</p>
-            </div>
-            <p className="text-3xl font-black text-lamanne-success tracking-widest">{cotisation.withdrawal_code}</p>
-            <p className="text-xs text-gray-500 mt-2">Présentez ce code en boutique pour retirer votre article</p>
+          <div className="bg-lamanne-primary rounded-2xl p-6 text-center text-white">
+            <QrCode className="h-7 w-7 mx-auto mb-2 opacity-80" />
+            <p className="font-sora text-xs font-semibold uppercase tracking-wide text-white/70">Code de retrait</p>
+            <p className="font-sora text-4xl font-black tracking-widest mt-1">{cotisation.withdrawal_code}</p>
+            <p className="text-sm text-white/80 mt-3">Présentez ce code en boutique pour retirer votre article</p>
           </div>
         )}
       </div>
 
       {/* Historique des versements */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-        <h2 className="font-bold text-gray-900 flex items-center justify-between">
+        <h2 className="font-sora font-bold text-gray-900 flex items-center justify-between">
           <span>Versements effectués</span>
           <span className="text-sm font-normal text-gray-400">{sortedPayments.length} versement{sortedPayments.length > 1 ? "s" : ""}</span>
         </h2>
@@ -329,7 +328,7 @@ export default function CotisationDetailPage() {
                     <span className="text-xs font-bold text-lamanne-primary">#{sortedPayments.length - i}</span>
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">{formatCFA(p.amount)}</p>
+                    <p className="font-sora text-sm font-semibold text-gray-900">{formatCFA(p.amount)}</p>
                     <p className="text-xs text-gray-400">{p.paid_at ? formatDate(p.paid_at) : "—"}</p>
                   </div>
                 </div>
