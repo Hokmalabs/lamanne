@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { createClient } from "@supabase/supabase-js";
 import { CommercialSidebar, CommercialBottomNav } from "./CommercialSidebar";
 import NotificationBell from "@/components/NotificationBell";
+import Logo from "@/components/Logo";
 
 const adminClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -39,9 +40,7 @@ export default async function CommercialLayout({
         {/* Mobile header */}
         <header className="md:hidden sticky top-0 z-20 bg-white border-b border-gray-100 px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-lamanne-primary rounded-xl flex items-center justify-center">
-              <span className="text-white font-black text-xs">LM</span>
-            </div>
+            <Logo size={32} />
             <span className="text-lamanne-primary font-black text-lg">LAMANNE</span>
           </div>
           <NotificationBell />

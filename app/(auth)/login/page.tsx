@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
 import { Eye, EyeOff, LogIn, Phone, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Logo from "@/components/Logo";
 
 function normalizePhone(phone: string): string {
   return phone.replace(/\s/g, "").replace(/^00/, "+");
@@ -206,9 +207,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex flex-col items-center gap-2">
-            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg">
-              <span className="text-lamanne-primary font-black text-xl">LM</span>
-            </div>
+            <Logo size={48} />
             <span className="font-sora text-white font-black text-2xl tracking-wide">LAMANNE</span>
             <span className="text-white/60 text-sm">Cotisation progressive</span>
           </Link>

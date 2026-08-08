@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ShoppingBag, PackageOpen, ArrowRight } from "lucide-react";
 import { formatCFA } from "@/lib/utils";
 import PublicCatalogueClient from "./PublicCatalogueClient";
+import Logo from "@/components/Logo";
 
 export const dynamic = "force-dynamic";
 
@@ -23,9 +24,7 @@ export default async function PublicCataloguePage() {
       <header className="sticky top-0 z-50 bg-white border-b border-gray-100" style={{ boxShadow: "0 1px 0 #E2E6EF" }}>
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-lamanne-primary rounded-xl flex items-center justify-center">
-              <span className="text-white font-black text-xs">LM</span>
-            </div>
+            <Logo size={32} />
             <span className="font-sora text-lamanne-primary font-black text-lg tracking-wide">LAMANNE</span>
           </Link>
           <div className="flex items-center gap-2">

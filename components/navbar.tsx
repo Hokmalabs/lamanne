@@ -11,6 +11,7 @@ import {
   History,
   User,
 } from "lucide-react";
+import Logo from "@/components/Logo";
 
 const navItems = [
   { href: "/dashboard",   label: "Accueil",     icon: LayoutDashboard },
@@ -39,9 +40,7 @@ export function Sidebar({ userName = "Utilisateur", userAvatar }: NavbarProps) {
       {/* Logo */}
       <div className="p-6 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center shadow-sm">
-            <span className="text-[#0F5132] font-black text-sm">LM</span>
-          </div>
+          <Logo size={40} />
           <div>
             <h1 className="text-white font-black text-lg tracking-wide">LAMANNE</h1>
             <p className="text-white/40 text-xs">Cotisation progressive</p>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import Logo from "@/components/Logo";
 
 export const metadata = {
   title: "Conditions Générales d'Utilisation",
@@ -19,9 +20,7 @@ export default function CGUPage() {
 
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 md:p-12">
           <div className="mb-8">
-            <div className="w-12 h-12 bg-lamanne-primary rounded-2xl flex items-center justify-center mb-4">
-              <span className="text-white font-black text-sm">LM</span>
-            </div>
+            <Logo size={36} className="mb-4" />
             <h1 className="text-3xl font-black text-gray-900">
               Conditions Générales d&apos;Utilisation
             </h1>

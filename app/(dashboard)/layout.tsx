@@ -1,6 +1,7 @@
 import { Sidebar, BottomNav } from "@/components/navbar";
 import NotificationBell from "@/components/NotificationBell";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import Logo from "@/components/Logo";
 
 export default async function DashboardLayout({
   children,
@@ -31,9 +32,7 @@ export default async function DashboardLayout({
         {/* Mobile header */}
         <header className="md:hidden sticky top-0 z-20 bg-white px-5 h-14 flex items-center justify-between" style={{ boxShadow: "0 1px 0 #E2E6EF" }}>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-[#0F5132] rounded-xl flex items-center justify-center">
-              <span className="text-white font-black text-xs">LM</span>
-            </div>
+            <Logo size={32} />
             <span className="text-[#0F5132] font-black text-lg tracking-wide">LAMANNE</span>
           </div>
           <NotificationBell />

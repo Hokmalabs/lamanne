@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import LandingSimulator from "@/components/LandingSimulator";
+import Logo from "@/components/Logo";
 import {
   ShoppingBag,
   CreditCard,
@@ -23,9 +24,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-lamanne-primary rounded-xl flex items-center justify-center">
-              <span className="text-white font-black text-xs">LM</span>
-            </div>
+            <Logo size={32} />
             <span className="text-lamanne-primary font-black text-xl tracking-wide">LAMANNE</span>
           </div>
           <div className="flex items-center gap-3">
@@ -359,9 +358,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-lamanne-accent rounded-lg flex items-center justify-center">
-                <span className="text-white font-black text-xs">LM</span>
-              </div>
+              <Logo size={32} />
               <span className="text-white font-bold text-lg">LAMANNE</span>
             </div>
             <p className="text-sm text-center">

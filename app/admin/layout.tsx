@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import AdminSidebar from "./AdminSidebar";
 import AdminBottomNav from "./AdminBottomNav";
+import Logo from "@/components/Logo";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createSupabaseServerClient();
@@ -39,9 +40,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           style={{ background: "#1a1f36" }}
         >
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-[#0F5132] rounded-xl flex items-center justify-center">
-              <span className="text-white font-black text-xs">LM</span>
-            </div>
+            <Logo size={32} />
             <span className="text-white font-black text-base tracking-wide">Admin</span>
           </div>
           <span className="text-white/40 text-xs font-medium">

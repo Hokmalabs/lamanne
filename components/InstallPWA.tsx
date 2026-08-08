@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
+import Logo from "@/components/Logo";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -32,9 +33,7 @@ export default function InstallPWA() {
 
   return (
     <div className="fixed bottom-20 md:bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 z-50 bg-lamanne-primary text-white rounded-2xl shadow-2xl p-4 flex items-center gap-3 animate-in slide-in-from-bottom-4">
-      <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-        <span className="font-black text-sm">LM</span>
-      </div>
+      <Logo size={40} className="flex-shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="font-bold text-sm">Installer LAMANNE</p>
         <p className="text-white/70 text-xs">Accès rapide depuis votre écran d&apos;accueil</p>
