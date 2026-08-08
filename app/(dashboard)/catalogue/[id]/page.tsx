@@ -78,46 +78,26 @@ export default function ProductDetailPage() {
     setSaving(true);
     setErrorMsg(null);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSaving(false); return; }
-
-    const isComplete = firstPaymentNum >= product.price;
-
-    const { data: newCot, error: cotError } = await supabase
-      .from("cotisations")
-      .insert({
-        user_id: user.id,
-        product_id: product.id,
-        total_price: product.price,
-        amount_paid: firstPaymentNum,
-        amount_remaining: Math.max(0, product.price - firstPaymentNum),
-        nb_tranches: 1,
-        tranche_amount: firstPaymentNum,
-        status: isComplete ? "completed" : "active",
-        withdrawal_code: isComplete
-          ? String(Math.floor(100000 + Math.random() * 900000))
-          : null,
-      })
-      .select()
-      .single();
-
-    if (cotError || !newCot) {
-      console.error("[Cotisation] insert error:", cotError);
-      setErrorMsg(`Erreur : ${cotError?.message ?? "création impossible"}`);
+    try {
+      const res = await fetch("/api/client/nouvelle-cotisation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product_id: product.id,
+          first_payment: firstPaymentNum,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.error || "Erreur lors de la création");
+        setSaving(false);
+        return;
+      }
+      router.push(`/cotisations/${data.cotisation_id}`);
+    } catch {
+      setErrorMsg("Erreur réseau. Réessayez.");
       setSaving(false);
-      return;
     }
-
-    await supabase.from("payments").insert({
-      cotisation_id: newCot.id,
-      user_id: user.id,
-      amount: firstPaymentNum,
-      status: "success",
-      payment_method: "mobile_money",
-      paid_at: new Date().toISOString(),
-    });
-
-    router.push("/cotisations?success=1");
   };
 
   if (loading) {
