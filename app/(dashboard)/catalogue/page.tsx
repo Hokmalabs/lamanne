@@ -44,7 +44,7 @@ export default function CataloguePage() {
   return (
     <div className="max-w-4xl mx-auto space-y-4">
       <div>
-        <h1 className="text-2xl font-black text-gray-900">Catalogue</h1>
+        <h1 className="font-sora text-2xl font-black text-gray-900">Catalogue</h1>
         <p className="text-gray-400 text-sm mt-0.5">
           {loading ? "Chargement…" : `${filtered.length} article(s) disponible(s)`}
         </p>
@@ -59,7 +59,7 @@ export default function CataloguePage() {
             placeholder="Rechercher un article…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 bg-white rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#0F5132]/20 transition-all"
+            className="w-full pl-11 pr-4 py-3 bg-white rounded-2xl text-sm outline-none focus:ring-2 focus:ring-lamanne-primary/20 transition-all"
             style={{ boxShadow: "var(--shadow-sm)" }}
           />
         </div>
@@ -74,8 +74,8 @@ export default function CataloguePage() {
               className={cn(
                 "flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all",
                 activeCategory === "all"
-                  ? "bg-[#0F5132] text-white"
-                  : "bg-white text-gray-500 border border-gray-200 hover:border-[#F2A900] hover:text-[#F2A900]"
+                  ? "bg-lamanne-primary text-white"
+                  : "bg-white text-gray-500 border border-gray-200 hover:border-lamanne-accent hover:text-lamanne-accent"
               )}
             >
               Tout
@@ -87,8 +87,8 @@ export default function CataloguePage() {
                 className={cn(
                   "flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all",
                   activeCategory === cat.id
-                    ? "bg-[#0F5132] text-white"
-                    : "bg-white text-gray-500 border border-gray-200 hover:border-[#F2A900] hover:text-[#F2A900]"
+                    ? "bg-lamanne-primary text-white"
+                    : "bg-white text-gray-500 border border-gray-200 hover:border-lamanne-accent hover:text-lamanne-accent"
                 )}
               >
                 {cat.name}
