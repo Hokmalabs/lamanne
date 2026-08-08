@@ -104,7 +104,7 @@ function LoginForm() {
   return (
     <div className="bg-white rounded-3xl shadow-2xl p-8">
       <div className="mb-6">
-        <h2 className="text-2xl font-black text-gray-900">Connexion</h2>
+        <h2 className="font-sora text-2xl font-black text-gray-900">Connexion</h2>
         <p className="text-gray-500 text-sm mt-1">
           Bon retour ! Entrez vos identifiants pour continuer.
         </p>
@@ -209,7 +209,7 @@ export default function LoginPage() {
             <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg">
               <span className="text-lamanne-primary font-black text-xl">LM</span>
             </div>
-            <span className="text-white font-black text-2xl tracking-wide">LAMANNE</span>
+            <span className="font-sora text-white font-black text-2xl tracking-wide">LAMANNE</span>
             <span className="text-white/60 text-sm">Cotisation progressive</span>
           </Link>
         </div>

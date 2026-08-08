@@ -28,7 +28,7 @@ export default function PublicCatalogueClient({
   return (
     <>
       {/* Search */}
-      <div className="sticky top-14 z-10 -mx-4 px-4 py-2 bg-[#F8F9FC]">
+      <div className="sticky top-14 z-10 -mx-4 px-4 py-2 bg-lamanne-light">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
@@ -36,7 +36,7 @@ export default function PublicCatalogueClient({
             placeholder="Rechercher un article…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 bg-white rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#0F5132]/20 transition-all"
+            className="w-full pl-11 pr-4 py-3 bg-white rounded-2xl text-sm outline-none focus:ring-2 focus:ring-lamanne-primary/20 transition-all"
             style={{ boxShadow: "var(--shadow-sm)", fontSize: "16px" }}
           />
         </div>
@@ -50,7 +50,7 @@ export default function PublicCatalogueClient({
               onClick={() => setActiveCategory("all")}
               className={cn(
                 "flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all",
-                activeCategory === "all" ? "bg-[#0F5132] text-white" : "bg-white text-gray-500 border border-gray-200"
+                activeCategory === "all" ? "bg-lamanne-primary text-white" : "bg-white text-gray-500 border border-gray-200"
               )}
             >
               Tout
@@ -61,7 +61,7 @@ export default function PublicCatalogueClient({
                 onClick={() => setActiveCategory(cat.id)}
                 className={cn(
                   "flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all",
-                  activeCategory === cat.id ? "bg-[#0F5132] text-white" : "bg-white text-gray-500 border border-gray-200"
+                  activeCategory === cat.id ? "bg-lamanne-primary text-white" : "bg-white text-gray-500 border border-gray-200"
                 )}
               >
                 {cat.name}
@@ -113,8 +113,8 @@ export default function PublicCatalogueClient({
                   )}
                 </div>
                 <div className="p-3">
-                  <p className="text-sm font-bold text-gray-900 line-clamp-2 leading-snug mb-1">{p.name}</p>
-                  <p className="text-base font-black text-[#0F5132]">{formatCFA(p.price)}</p>
+                  <p className="font-sora text-sm font-bold text-gray-900 line-clamp-2 leading-snug mb-1">{p.name}</p>
+                  <p className="font-sora text-base font-black text-lamanne-primary">{formatCFA(p.price)}</p>
                   <p className="text-xs text-gray-400 mt-0.5">≈ {formatCFA(dailyCost)}/jour</p>
                 </div>
               </Link>

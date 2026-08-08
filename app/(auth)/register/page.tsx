@@ -141,7 +141,7 @@ function RegisterForm() {
           <div className="w-16 h-16 bg-lamanne-success/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="h-8 w-8 text-lamanne-success" />
           </div>
-          <h2 className="text-2xl font-black text-gray-900 mb-2">Compte créé !</h2>
+          <h2 className="font-sora text-2xl font-black text-gray-900 mb-2">Compte créé !</h2>
           <p className="text-gray-500 mb-6">
             Un email de confirmation vous a été envoyé à{" "}
             <strong>{successEmail}</strong>. Vérifiez votre boîte mail pour
@@ -164,14 +164,14 @@ function RegisterForm() {
             <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg">
               <span className="text-lamanne-primary font-black text-xl">LM</span>
             </div>
-            <span className="text-white font-black text-2xl tracking-wide">LAMANNE</span>
+            <span className="font-sora text-white font-black text-2xl tracking-wide">LAMANNE</span>
             <span className="text-white/60 text-sm">Rejoignez-nous gratuitement</span>
           </Link>
         </div>
 
         <div className="bg-white rounded-3xl shadow-2xl p-8">
           <div className="mb-6">
-            <h2 className="text-2xl font-black text-gray-900">Créer un compte</h2>
+            <h2 className="font-sora text-2xl font-black text-gray-900">Créer un compte</h2>
             <p className="text-gray-500 text-sm mt-1">
               Commencez à cotiser pour vos articles préférés.
             </p>
