@@ -50,34 +50,29 @@ function VersementModal({
     if (amountNum < 1000) { setError("Montant minimum : 1 000 FCFA."); return; }
     if (amountNum > cotisation.amount_remaining) { setError("Montant supérieur au restant dû."); return; }
     setSaving(true);
+    setError(null);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSaving(false); return; }
-
-    const newPaid = cotisation.amount_paid + amountNum;
-    const newRemaining = cotisation.total_price - newPaid;
-    const isComplete = newRemaining <= 0;
-
-    const [, cotUpdate] = await Promise.all([
-      supabase.from("payments").insert({
-        cotisation_id: cotisation.id,
-        user_id: user.id,
-        amount: amountNum,
-        status: "success",
-        payment_method: "mobile_money",
-        paid_at: new Date().toISOString(),
-      }),
-      supabase.from("cotisations").update({
-        amount_paid: newPaid,
-        amount_remaining: Math.max(0, newRemaining),
-        status: isComplete ? "completed" : "active",
-        ...(isComplete ? { withdrawal_code: String(Math.floor(100000 + Math.random() * 900000)) } : {}),
-      }).eq("id", cotisation.id),
-    ]);
-
-    if (!cotUpdate.error) onSuccess();
-    else setError("Erreur lors du paiement. Réessayez.");
-    setSaving(false);
+    try {
+      const res = await fetch("/api/client/versement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cotisation_id: cotisation.id,
+          amount: amountNum,
+          idempotency_key: `${cotisation.id}-${Date.now()}-${crypto.randomUUID()}`,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Erreur lors du paiement. Réessayez.");
+        setSaving(false);
+        return;
+      }
+      onSuccess();
+    } catch {
+      setError("Erreur réseau. Réessayez.");
+      setSaving(false);
+    }
   };
 
   return (
