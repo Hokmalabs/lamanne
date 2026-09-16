@@ -20,8 +20,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .eq("id", user.id)
     .single();
 
-  console.log("[AdminLayout] user.id:", user.id, "| role:", profile?.role ?? "null");
-
   if (!profile || !["admin", "super_admin"].includes(profile.role)) {
     redirect("/dashboard");
   }
@@ -35,22 +33,19 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
       <div className="md:ml-60 flex flex-col min-h-screen">
         {/* Mobile header */}
-        <header
-          className="md:hidden sticky top-0 z-20 px-4 h-14 flex items-center justify-between"
-          style={{ background: "#1a1f36" }}
-        >
-          <div className="flex items-center gap-2.5">
+        <header className="md:hidden sticky top-0 z-20 px-4 h-14 flex items-center justify-between bg-gray-900">
+          <div className="flex items-center gap-2.5 min-w-0">
             <Logo size={32} />
-            <span className="text-white font-black text-base tracking-wide">Admin</span>
+            <span className="text-white font-sora font-black text-base tracking-wide truncate">Admin</span>
           </div>
-          <span className="text-white/40 text-xs font-medium">
+          <span className="text-white/40 text-xs font-medium truncate flex-shrink-0 ml-3">
             {isSuperAdmin ? "Super Admin" : "Back-office"}
           </span>
         </header>
 
         {/* Desktop top bar */}
         <header className="hidden md:flex bg-white border-b border-gray-100 px-6 h-14 items-center">
-          <h1 className="text-sm font-bold text-gray-500 uppercase tracking-wide">
+          <h1 className="text-sm font-sora font-bold text-gray-500 uppercase tracking-wide">
             Administration LAMANNE
           </h1>
         </header>

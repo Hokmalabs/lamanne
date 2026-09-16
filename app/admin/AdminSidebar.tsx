@@ -43,12 +43,12 @@ export default function AdminSidebar({ isSuperAdmin }: { isSuperAdmin: boolean }
       {/* Logo */}
       <div className="p-5 border-b border-white/10">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 bg-[#0F5132] rounded-xl flex items-center justify-center">
+          <div className="w-9 h-9 bg-lamanne-primary rounded-xl flex items-center justify-center flex-shrink-0">
             <ShieldCheck className="h-5 w-5 text-white" />
           </div>
-          <div>
-            <p className="text-white font-black text-sm">LAMANNE Admin</p>
-            <p className="text-white/40 text-xs">{isSuperAdmin ? "Super Admin" : "Back-office"}</p>
+          <div className="min-w-0">
+            <p className="text-white font-sora font-black text-sm truncate">LAMANNE Admin</p>
+            <p className="text-white/40 text-xs truncate">{isSuperAdmin ? "Super Admin" : "Back-office"}</p>
           </div>
         </div>
       </div>
@@ -62,9 +62,9 @@ export default function AdminSidebar({ isSuperAdmin }: { isSuperAdmin: boolean }
               key={href}
               href={href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
+                "flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl text-sm font-medium transition-all min-w-0 truncate",
                 isActive
-                  ? "bg-[#0F5132] text-white"
+                  ? "bg-lamanne-primary text-white"
                   : "text-white/60 hover:bg-white/8 hover:text-white"
               )}
             >
@@ -78,14 +78,14 @@ export default function AdminSidebar({ isSuperAdmin }: { isSuperAdmin: boolean }
       <div className="p-4 border-t border-white/10 space-y-1">
         <Link
           href="/dashboard"
-          className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-white/50 hover:text-white hover:bg-white/8 transition-all"
+          className="flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-xl text-sm text-white/50 hover:text-white hover:bg-white/8 transition-all min-w-0 truncate"
         >
           <LayoutDashboard className="h-4 w-4" />
           Dashboard client
         </Link>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-white/50 hover:text-red-400 hover:bg-white/8 transition-all"
+          className="w-full flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-xl text-sm text-white/50 hover:text-red-400 hover:bg-white/8 transition-all min-w-0 truncate"
         >
           <LogOut className="h-4 w-4" />
           Se déconnecter
