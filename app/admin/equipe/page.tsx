@@ -26,7 +26,7 @@ export default async function AdminEquipePage() {
             {members.length} membre(s) de l&apos;équipe
           </p>
         </div>
-        <div className="w-full sm:w-auto flex-shrink-0 [&>button]:w-full sm:[&>button]:w-auto">
+        <div className="w-full sm:w-auto flex-shrink-0 [&>button]:w-full [&>button]:justify-center sm:[&>button]:w-auto">
           <AddMemberButton />
         </div>
       </div>

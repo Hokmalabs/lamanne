@@ -43,7 +43,7 @@ export function RemboursementActions({ id }: { id: string }) {
         )}
       </Button>
       <Button
-        className="w-full sm:flex-1 bg-lamanne-success hover:bg-lamanne-success/90"
+        className="w-full sm:flex-1 bg-lamanne-primary hover:bg-lamanne-primary/90"
         onClick={() => handleDecision("approve")}
         disabled={!!loading}
       >
