@@ -1,4 +1,4 @@
-import { ClipboardList, PackageCheck, RefreshCw, TrendingUp, ShoppingBag } from "lucide-react";
+import { ClipboardList, PackageCheck, RefreshCw, Users, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { formatCFA, formatDate } from "@/lib/utils";
 import { supabaseAdmin } from "@/lib/supabase-admin";
@@ -63,12 +63,14 @@ export default async function AdminOverviewPage() {
     { data: collected },
     { data: withdrawals },
     { data: refunds },
+    { data: clients },
     { data: recentRaw },
   ] = await Promise.all([
     supabaseAdmin.from("cotisations").select("id, amount_paid, total_price").eq("status", "active"),
     supabaseAdmin.from("cotisations").select("amount_paid"),
     supabaseAdmin.from("cotisations").select("id").eq("status", "completed").is("withdrawn_at", null),
     supabaseAdmin.from("cotisations").select("id").eq("refund_status", "requested"),
+    supabaseAdmin.from("profiles").select("id").eq("role", "user"),
     supabaseAdmin.from("cotisations").select("id, total_price, amount_paid, status, created_at, user_id, products(name)")
       .order("created_at", { ascending: false }).limit(8),
   ]);
@@ -135,8 +137,8 @@ export default async function AdminOverviewPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard icon={ClipboardList} label="Cotisations actives" value={activeRows.length}
           bgClass="bg-lamanne-primary" href="/admin/cotisations" />
-        <StatCard icon={TrendingUp} label="Total collecté" value={formatCFA(totalCollected)}
-          bgClass="bg-lamanne-success" />
+        <StatCard icon={Users} label="Clients" value={clients?.length ?? 0}
+          bgClass="bg-lamanne-success" href="/admin/clients" />
         <StatCard icon={PackageCheck} label="Retraits en attente" value={withdrawals?.length ?? 0}
           bgClass="bg-lamanne-accent" href="/admin/retraits" />
         <StatCard icon={RefreshCw} label="Remboursements" value={refunds?.length ?? 0}
