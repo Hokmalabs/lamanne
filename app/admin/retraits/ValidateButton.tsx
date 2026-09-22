@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { PackageCheck } from "lucide-react";
+import { apiPatch } from "@/lib/api-client";
 
 export function ValidateButton({ id }: { id: string }) {
   const router = useRouter();
@@ -11,21 +12,26 @@ export function ValidateButton({ id }: { id: string }) {
 
   const handleValidate = async () => {
     setLoading(true);
-    await fetch(`/api/admin/retraits/${id}`, { method: "PATCH" });
-    setLoading(false);
-    router.refresh();
+    try {
+      await apiPatch(`/api/admin/retraits/${id}`, {});
+      router.refresh();
+    } catch (e) {
+      console.error("[ValidateButton]", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <Button className="w-full" onClick={handleValidate} disabled={loading}>
       {loading ? (
         <span className="flex items-center gap-2">
-          <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin flex-shrink-0" />
           Validation...
         </span>
       ) : (
         <span className="flex items-center gap-2">
-          <PackageCheck className="h-4 w-4" />
+          <PackageCheck className="h-4 w-4 flex-shrink-0" />
           Valider le retrait
         </span>
       )}

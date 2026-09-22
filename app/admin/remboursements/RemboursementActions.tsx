@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle } from "lucide-react";
+import { apiPatch } from "@/lib/api-client";
 
 export function RemboursementActions({ id }: { id: string }) {
   const router = useRouter();
@@ -11,48 +12,49 @@ export function RemboursementActions({ id }: { id: string }) {
 
   const handleDecision = async (action: "approve" | "reject") => {
     setLoading(action);
-    await fetch(`/api/admin/remboursements/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action }),
-    });
-    setLoading(null);
-    router.refresh();
+    try {
+      await apiPatch(`/api/admin/remboursements/${id}`, { action });
+      router.refresh();
+    } catch (e) {
+      console.error("[RemboursementActions]", e);
+    } finally {
+      setLoading(null);
+    }
   };
 
   return (
-    <div className="flex gap-3">
+    <div className="flex flex-col sm:flex-row gap-3">
       <Button
         variant="outline"
-        className="flex-1 border-red-200 text-red-600 hover:bg-red-50"
+        className="w-full sm:flex-1 border-lamanne-danger/30 text-lamanne-danger hover:bg-lamanne-danger/5"
         onClick={() => handleDecision("reject")}
         disabled={!!loading}
       >
         {loading === "reject" ? (
           <span className="flex items-center gap-2">
-            <span className="h-4 w-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+            <span className="h-4 w-4 border-2 border-lamanne-danger border-t-transparent rounded-full animate-spin flex-shrink-0" />
             Rejet...
           </span>
         ) : (
           <span className="flex items-center gap-2">
-            <XCircle className="h-4 w-4" />
+            <XCircle className="h-4 w-4 flex-shrink-0" />
             Rejeter
           </span>
         )}
       </Button>
       <Button
-        className="flex-1 bg-lamanne-success hover:bg-lamanne-success/90"
+        className="w-full sm:flex-1 bg-lamanne-primary hover:bg-lamanne-primary/90"
         onClick={() => handleDecision("approve")}
         disabled={!!loading}
       >
         {loading === "approve" ? (
           <span className="flex items-center gap-2">
-            <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin flex-shrink-0" />
             Traitement...
           </span>
         ) : (
           <span className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4" />
+            <CheckCircle className="h-4 w-4 flex-shrink-0" />
             Approuver
           </span>
         )}

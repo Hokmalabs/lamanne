@@ -1,15 +1,10 @@
-import { createClient } from "@supabase/supabase-js";
 import AddClientButton from "./AddClientButton";
 import ClientsTableWithSearch from "./ClientsTableWithSearch";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requirePageAuth } from "@/lib/api-security";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-const admin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export default async function AdminClientsPage() {
   await requirePageAuth(["admin", "super_admin"]);
@@ -17,12 +12,12 @@ export default async function AdminClientsPage() {
     { data: clients },
     { data: commercials },
   ] = await Promise.all([
-    admin
+    supabaseAdmin
       .from("profiles")
       .select("id, full_name, phone, assigned_commercial, created_at")
       .eq("role", "user")
       .order("created_at", { ascending: false }),
-    admin
+    supabaseAdmin
       .from("profiles")
       .select("id, full_name, phone")
       .eq("role", "commercial")
@@ -35,9 +30,9 @@ export default async function AdminClientsPage() {
   );
 
   const clientIds = (clients ?? []).map((c) => c.id);
-  let cotisationCountMap: Record<string, number> = {};
+  const cotisationCountMap: Record<string, number> = {};
   if (clientIds.length > 0) {
-    const { data: cots } = await admin
+    const { data: cots } = await supabaseAdmin
       .from("cotisations")
       .select("user_id")
       .in("user_id", clientIds)
@@ -49,12 +44,16 @@ export default async function AdminClientsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-gray-900">Clients</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{(clients ?? []).length} client(s) enregistré(s)</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="font-sora text-2xl font-black text-gray-900">Clients</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {(clients ?? []).length} client(s) enregistré(s)
+          </p>
         </div>
-        <AddClientButton commercials={commercials ?? []} />
+        <div className="w-full sm:w-auto flex-shrink-0 [&>button]:w-full [&>button]:justify-center sm:[&>button]:w-auto">
+          <AddClientButton commercials={commercials ?? []} />
+        </div>
       </div>
 
       <ClientsTableWithSearch
