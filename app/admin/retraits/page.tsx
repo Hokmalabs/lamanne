@@ -86,7 +86,7 @@ export default async function AdminRetraitsPage({
     <div className="space-y-6">
       <div>
         <h1 className="font-sora text-2xl font-black text-gray-900">Retraits</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Validation des retraits en boutique</p>
+        <p className="text-sm text-gray-500 mt-0.5">Remise des articles par l&apos;agent ou au siège à Daloa</p>
       </div>
 
       {/* Onglets */}

@@ -307,7 +307,7 @@ export default function CotisationDetailPage() {
             <QrCode className="h-7 w-7 mx-auto mb-2 opacity-80" />
             <p className="font-sora text-xs font-semibold uppercase tracking-wide text-white/70">Code de retrait</p>
             <p className="font-sora text-4xl font-black tracking-widest mt-1">{cotisation.withdrawal_code}</p>
-            <p className="text-sm text-white/80 mt-3">Présentez ce code en boutique pour retirer votre article</p>
+            <p className="text-sm text-white/80 mt-3">Présentez ce code à votre agent ou au siège à Daloa pour récupérer votre article</p>
           </div>
         )}
       </div>

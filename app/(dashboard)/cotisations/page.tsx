@@ -272,7 +272,7 @@ function CotisationItem({
               <p className="text-xs font-semibold text-lamanne-success">Code de retrait</p>
             </div>
             <p className="font-sora text-3xl font-black text-lamanne-primary tracking-widest">{cotisation.withdrawal_code}</p>
-            <p className="text-xs text-gray-500 mt-2">Présentez ce code en boutique</p>
+            <p className="text-xs text-gray-500 mt-2">Présentez ce code à votre agent ou au siège à Daloa</p>
           </div>
         )}
       </div>
