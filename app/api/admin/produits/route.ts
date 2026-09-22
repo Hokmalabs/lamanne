@@ -10,6 +10,17 @@ import {
   ApiError,
 } from "@/lib/api-security";
 
+// Les images doivent provenir du bucket public `products` du projet Supabase
+const PRODUCTS_PUBLIC_PREFIX = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/products/`;
+
+const imageUrlSchema = z
+  .string()
+  .url()
+  .refine(
+    (url) => url.startsWith(PRODUCTS_PUBLIC_PREFIX),
+    "Image non autorisée (doit provenir du stockage LAMANNE)",
+  );
+
 const CreateSchema = z
   .object({
     name: z
@@ -18,15 +29,23 @@ const CreateSchema = z
       .max(200)
       .trim(),
     description: z.string().max(2000).optional().default(""),
-    price: z.number().int().positive("Le prix doit être un entier positif"),
+    price: z
+      .number()
+      .int()
+      .positive("Le prix doit être un entier positif")
+      .max(100_000_000, "Prix trop élevé (100 000 000 FCFA maximum)"),
     category_id: z.string().uuid("Catégorie invalide"),
-    stock: z.number().int().nonnegative("Le stock ne peut pas être négatif"),
+    stock: z
+      .number()
+      .int()
+      .nonnegative("Le stock ne peut pas être négatif")
+      .max(100_000, "Stock trop élevé"),
     is_lot: z.boolean().optional().default(false),
     lot_details: z.string().max(2000).nullable().optional(),
     min_tranches: z.number().int().min(1).max(12).optional().default(1),
     max_tranches: z.number().int().min(1).max(12).optional().default(6),
     delivery_days: z.number().int().min(1).max(60).optional().default(1),
-    images: z.array(z.string().url()).max(4).optional().default([]),
+    images: z.array(imageUrlSchema).max(4).optional().default([]),
     is_active: z.boolean().optional().default(true),
   })
   .refine((data) => data.min_tranches <= data.max_tranches, {
