@@ -28,6 +28,7 @@ export interface Product {
   lot_details: string | null;
   max_tranches: number;
   min_tranches: number;
+  delivery_days: number;
   created_at: string;
   category?: Category;
 }
