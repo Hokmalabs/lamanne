@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { apiPost } from "@/lib/api-client";
 import { Cotisation, Product } from "@/lib/types";
 import { formatCFA, calculateProgress, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -171,17 +172,17 @@ function CancelModal({
 
   const handleConfirm = async () => {
     setSaving(true);
-    const { error } = await supabase.from("cotisations").update({
-      status: "cancelled",
-      cancellation_reason: reason || null,
-      cancelled_at: new Date().toISOString(),
-      refund_status: "requested",
-      refund_requested_at: new Date().toISOString(),
-      refund_amount: refundAmount,
-    }).eq("id", cotisation.id);
-
-    if (!error) onSuccess();
-    setSaving(false);
+    try {
+      await apiPost("/api/client/annuler-cotisation", {
+        cotisation_id: cotisation.id,
+        reason: reason || undefined,
+      });
+      onSuccess();
+    } catch (e) {
+      console.error("[CancelModal]", e);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
