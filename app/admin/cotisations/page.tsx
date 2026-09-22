@@ -100,7 +100,7 @@ export default async function AdminCotisationsPage({
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {[
           { label: "Toutes", value: "all" },
           { label: "En cours", value: "active" },
@@ -110,7 +110,7 @@ export default async function AdminCotisationsPage({
           <Link
             key={value}
             href={value !== "all" ? `/admin/cotisations?filter=${value}` : "/admin/cotisations"}
-            className={`inline-flex items-center min-h-[44px] px-4 py-2 rounded-full text-sm font-semibold border transition-colors ${
+            className={`inline-flex items-center min-h-[44px] px-4 py-2 rounded-full text-sm font-semibold border transition-colors flex-shrink-0 whitespace-nowrap ${
               (filter ?? "all") === value
                 ? "bg-lamanne-primary text-white border-lamanne-primary"
                 : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
@@ -149,7 +149,10 @@ export default async function AdminCotisationsPage({
                   <span className="text-xs font-semibold text-gray-600 w-9 text-right flex-shrink-0">{c.progress}%</span>
                 </div>
                 <div className="flex items-center justify-between gap-3 text-xs text-gray-400">
-                  <span className="font-sora font-semibold text-gray-800 flex-shrink-0">{formatCFA(c.amount_paid)}</span>
+                  <span className="font-sora font-semibold text-gray-800 flex-shrink-0">
+                    {formatCFA(c.amount_paid)}
+                    <span className="font-normal text-gray-400"> / {formatCFA(c.total_price)}</span>
+                  </span>
                   <span className="truncate">{formatDate(c.created_at)}</span>
                 </div>
               </div>
@@ -185,7 +188,10 @@ export default async function AdminCotisationsPage({
                         <span className="text-xs text-gray-600">{c.progress}%</span>
                       </div>
                     </td>
-                    <td className="px-5 py-3.5 font-sora font-medium">{formatCFA(c.amount_paid)}</td>
+                    <td className="px-5 py-3.5 font-sora font-medium">
+                      {formatCFA(c.amount_paid)}
+                      <div className="text-xs text-gray-400 font-normal">sur {formatCFA(c.total_price)}</div>
+                    </td>
                     <td className="px-5 py-3.5">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusColor[c.status] ?? "bg-gray-100 text-gray-600"}`}>
                         {statusLabel[c.status] ?? c.status}
