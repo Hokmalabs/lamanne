@@ -42,7 +42,7 @@ export default function EquipeTableWithSearch({
     (currentRole === "super_admin" || member.role === "commercial");
 
   const loginHintFor = (member: Member) =>
-    `Connexion : onglet Téléphone, avec le numéro ${member.phone ?? "—"}`;
+    `Identifiant : le numéro ${member.phone ?? "—"}, ou l'email si le compte a été créé avec un email`;
 
   const filtered = members.filter((m) => {
     if (roleFilter === "admin" && !["admin", "super_admin"].includes(m.role)) return false;
