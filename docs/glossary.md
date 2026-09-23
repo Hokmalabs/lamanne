@@ -8,7 +8,7 @@ Contrat d'achat progressif entre un client et FAMIENWA. Chaque cotisation :
 - Porte sur UN produit précis
 - A un prix total (`total_price`) fixé à la création
 - A une durée en mois (`nb_tranches`) fixée à la création (entre `min_tranches` et `max_tranches` du produit)
-- A un statut : `active`, `completed`, `cancelled`, `refund_requested`, `refunded`
+- A un statut : `active`, `completed`, `cancelled` (les trois seules valeurs du CHECK en base)
 - Est associée à un client (`user_id`) et créée par un commercial ou admin (`created_by`)
 - Génère un `withdrawal_code` unique dès qu'elle atteint 100%
 
@@ -27,11 +27,11 @@ Un versement cash est enregistré par un commercial ou admin. Un versement onlin
 
 ## Retrait
 
-Récupération physique de l'article par le client une fois la cotisation à 100%. Nécessite le `withdrawal_code`. Enregistré par admin/super_admin via `/admin/retraits`. Marque la cotisation avec `withdrawn_at` (timestamp).
+Récupération physique de l'article par le client une fois la cotisation à 100%. Nécessite le `withdrawal_code`. L'article est remis par l'agent lors d'une tournée ou retiré par le client au siège à Daloa ; la validation dans l'application reste faite par un admin/super_admin via `/admin/retraits`. Marque la cotisation avec `withdrawn_at` (timestamp).
 
 ## Remboursement
 
-Demande d'annulation d'une cotisation en cours + restitution des sommes déjà versées. Initié par le client ou son commercial. Validé/refusé par un admin/super_admin. Passe la cotisation en `refund_status = 'requested'` puis `refunded`.
+Demande d'annulation d'une cotisation en cours + restitution des sommes déjà versées. Initié par le client ou son commercial. Validé/refusé par un admin/super_admin. Passe la cotisation en `refund_status = 'requested'`, puis `approved` ou `rejected` à la décision de l'admin. La cotisation reste `active` tant que la demande n'est pas approuvée.
 
 ## Code de retrait
 
@@ -59,7 +59,10 @@ Chaque client (`user`) peut être assigné à un commercial via `profiles.assign
 - `active` — en cours de paiement
 - `completed` — 100% payée
 - `cancelled` — annulée
-- Colonnes séparées : `refund_status` (`null`, `requested`, `approved`, `rejected`, `refunded`)
+
+Colonne séparée `refund_status` (CHECK) : `none` (défaut), `requested`, `approved`, `rejected`.
+
+> `refunded` n'existe **PAS** dans le CHECK — l'étape finale du remboursement (constatation du versement des fonds au client) reste à définir (voir `next.md`).
 
 ### Paiement
 - `success` — validé
