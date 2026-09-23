@@ -159,7 +159,6 @@ export default async function ClientDetailPage({
                         />
                         <RemboursementModal
                           cotisationId={cot.id}
-                          clientId={clientId}
                           productName={cot.product_name}
                           amountPaid={cot.amount_paid}
                         />
