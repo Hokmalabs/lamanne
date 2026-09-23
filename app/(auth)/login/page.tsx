@@ -10,15 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { Eye, EyeOff, LogIn, Phone, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Logo from "@/components/Logo";
-
-function normalizePhone(phone: string): string {
-  return phone.replace(/\s/g, "").replace(/^00/, "+");
-}
-
-function phoneToEmail(phone: string): string {
-  const digits = normalizePhone(phone).replace(/\D/g, "");
-  return `phone_${digits}@lamanne.app`;
-}
+import { normalizeCIPhone, phoneToLoginEmail, PHONE_FORMAT_MESSAGE } from "@/lib/phone";
 
 /**
  * Traduit la saisie de l'onglet Téléphone en mot de passe Supabase.
@@ -127,6 +119,13 @@ function LoginForm() {
     setLoading(true);
     setError(null);
 
+    const normalizedPhone = normalizeCIPhone(phone);
+    if (!normalizedPhone) {
+      setError(PHONE_FORMAT_MESSAGE);
+      setLoading(false);
+      return;
+    }
+
     const resolved = resolvePhonePassword(phonePassword);
     if (!resolved) {
       setError("Saisissez votre code PIN ou votre mot de passe.");
@@ -134,9 +133,8 @@ function LoginForm() {
       return;
     }
 
-    const fakeEmail = phoneToEmail(phone);
     const { error } = await supabase.auth.signInWithPassword({
-      email: fakeEmail,
+      email: phoneToLoginEmail(normalizedPhone),
       password: resolved,
     });
 
@@ -227,7 +225,7 @@ function LoginForm() {
         <form onSubmit={handlePhoneLogin} className="space-y-5">
           <div className="space-y-1.5">
             <Label htmlFor="phone">Numéro de téléphone</Label>
-            <Input id="phone" type="tel" placeholder="+225 07 00 00 00 00" value={phone}
+            <Input id="phone" type="tel" placeholder="07 00 00 00 00" value={phone}
               onChange={(e) => setPhone(e.target.value)} required autoComplete="tel"
               style={{ fontSize: "16px" }} />
           </div>

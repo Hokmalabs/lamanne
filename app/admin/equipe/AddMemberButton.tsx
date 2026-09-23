@@ -133,12 +133,15 @@ export default function AddMemberButton({ currentRole }: { currentRole: string }
                 <Input
                   id="m-phone"
                   type="tel"
-                  placeholder="+225 07 00 00 00 00"
+                  placeholder="07 00 00 00 00"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   required
                   className="min-h-[44px] text-base sm:text-sm"
                 />
+                <p className="text-xs text-gray-500">
+                  10 chiffres, l&apos;indicatif +225 est ajouté automatiquement.
+                </p>
               </div>
 
               <div className="space-y-1.5">

@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { generateStaffPassword } from "@/lib/staff-password";
+import { normalizeCIPhone, phoneToLoginEmail, PHONE_FORMAT_MESSAGE } from "@/lib/phone";
 import {
   requireAuth,
   requireRole,
@@ -14,11 +15,6 @@ import {
 
 export const dynamic = "force-dynamic";
 
-/** Espaces retirés, préfixe international "00" ramené à "+" */
-function normalizePhone(value: string): string {
-  return value.replace(/\s/g, "").replace(/^00/, "+");
-}
-
 const CreateSchema = z.object({
   full_name: z
     .string()
@@ -27,11 +23,8 @@ const CreateSchema = z.object({
     .max(100, "Nom trop long (100 caractères maximum)"),
   phone: z
     .string()
-    .transform(normalizePhone)
-    .refine(
-      (phone) => /^\+\d{10,15}$/.test(phone),
-      "Numéro invalide (format attendu : +225XXXXXXXXXX)",
-    ),
+    .transform(normalizeCIPhone)
+    .refine((phone): phone is string => phone !== null, PHONE_FORMAT_MESSAGE),
   email: z
     .string()
     .trim()
@@ -61,8 +54,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Email de connexion : celui fourni, sinon un email technique dérivé du numéro
-    const digits = phone.replace(/\D/g, "");
-    const resolvedEmail = email ? email : `phone_${digits}@lamanne.app`;
+    const resolvedEmail = email ? email : phoneToLoginEmail(phone);
 
     const { data: existing, error: existingError } = await supabaseAdmin
       .from("profiles")
