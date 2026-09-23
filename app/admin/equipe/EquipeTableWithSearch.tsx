@@ -7,7 +7,7 @@ import MemberActions from "./MemberActions";
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   super_admin: { label: "Super Admin",  color: "bg-purple-100 text-purple-700" },
-  admin:       { label: "Admin",        color: "bg-red-100 text-red-700" },
+  admin:       { label: "Admin",        color: "bg-lamanne-soft text-lamanne-primary" },
   commercial:  { label: "Commercial",   color: "bg-blue-100 text-blue-700" },
   user:        { label: "Client",       color: "bg-gray-100 text-gray-600" },
 };
@@ -23,9 +23,26 @@ type Member = {
 
 type RoleFilter = "all" | "admin" | "commercial";
 
-export default function EquipeTableWithSearch({ members }: { members: Member[] }) {
+export default function EquipeTableWithSearch({
+  members,
+  currentUserId,
+  currentRole,
+}: {
+  members: Member[];
+  currentUserId: string;
+  currentRole: string;
+}) {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
+
+  // Miroir UI de loadManageableTarget — le serveur reste l'autorité
+  const canManage = (member: Member) =>
+    member.id !== currentUserId &&
+    member.role !== "super_admin" &&
+    (currentRole === "super_admin" || member.role === "commercial");
+
+  const loginHintFor = (member: Member) =>
+    `Identifiant : le numéro ${member.phone ?? "—"}, ou l'email si le compte a été créé avec un email`;
 
   const filtered = members.filter((m) => {
     if (roleFilter === "admin" && !["admin", "super_admin"].includes(m.role)) return false;
@@ -46,9 +63,9 @@ export default function EquipeTableWithSearch({ members }: { members: Member[] }
             <button
               key={f}
               onClick={() => setRoleFilter(f)}
-              className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+              className={`inline-flex items-center min-h-[44px] px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
                 roleFilter === f
-                  ? "bg-[#0F5132] text-white"
+                  ? "bg-lamanne-primary text-white"
                   : "bg-white border border-gray-200 text-gray-600 hover:border-gray-400"
               }`}
             >
@@ -57,13 +74,13 @@ export default function EquipeTableWithSearch({ members }: { members: Member[] }
           ))}
         </div>
         <div className="relative sm:ml-auto">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Rechercher…"
-            className="pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0F5132]/20 w-full sm:w-64"
-            style={{ fontSize: "16px" }}
+            aria-label="Rechercher un membre"
+            className="min-h-[44px] pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lamanne-primary/20 w-full sm:w-64"
           />
         </div>
       </div>
@@ -79,6 +96,7 @@ export default function EquipeTableWithSearch({ members }: { members: Member[] }
           <div className="md:hidden space-y-3">
             {filtered.map((m) => {
               const roleInfo = ROLE_LABELS[m.role] ?? ROLE_LABELS.user;
+              const manageable = canManage(m);
               return (
                 <div key={m.id} className="bg-white rounded-2xl p-4" style={{ boxShadow: "var(--shadow-sm)" }}>
                   <div className="flex items-center gap-3 mb-3">
@@ -95,14 +113,29 @@ export default function EquipeTableWithSearch({ members }: { members: Member[] }
                       {roleInfo.label}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${m.is_suspended ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${m.is_suspended ? "bg-lamanne-danger/10 text-lamanne-danger" : "bg-lamanne-success/10 text-lamanne-success"}`}>
                       {m.is_suspended ? "Suspendu" : "Actif"}
                     </span>
-                    <div className="flex items-center gap-2">
-                      <AssignRoleButton memberId={m.id} currentRole={m.role} />
-                      <MemberActions memberId={m.id} isSuspended={!!m.is_suspended} />
-                    </div>
+                    {manageable ? (
+                      <div className="flex flex-col items-end gap-2">
+                        <AssignRoleButton
+                          memberId={m.id}
+                          memberRole={m.role}
+                          currentRole={currentRole}
+                        />
+                        <MemberActions
+                          memberId={m.id}
+                          memberName={m.full_name ?? "ce membre"}
+                          memberRole={m.role}
+                          isSuspended={!!m.is_suspended}
+                          currentRole={currentRole}
+                          loginHint={loginHintFor(m)}
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-300">—</span>
+                    )}
                   </div>
                 </div>
               );
@@ -125,6 +158,7 @@ export default function EquipeTableWithSearch({ members }: { members: Member[] }
               <tbody className="divide-y divide-gray-50">
                 {filtered.map((m) => {
                   const roleInfo = ROLE_LABELS[m.role] ?? ROLE_LABELS.user;
+                  const manageable = canManage(m);
                   return (
                     <tr key={m.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4">
@@ -148,16 +182,31 @@ export default function EquipeTableWithSearch({ members }: { members: Member[] }
                       </td>
                       <td className="px-6 py-4">
                         {m.is_suspended ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-600">Suspendu</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-lamanne-danger/10 text-lamanne-danger">Suspendu</span>
                         ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-600">Actif</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-lamanne-success/10 text-lamanne-success">Actif</span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <div className="flex items-center gap-2 justify-end">
-                          <AssignRoleButton memberId={m.id} currentRole={m.role} />
-                          <MemberActions memberId={m.id} isSuspended={!!m.is_suspended} />
-                        </div>
+                        {manageable ? (
+                          <div className="flex items-start gap-3 justify-end">
+                            <AssignRoleButton
+                              memberId={m.id}
+                              memberRole={m.role}
+                              currentRole={currentRole}
+                            />
+                            <MemberActions
+                              memberId={m.id}
+                              memberName={m.full_name ?? "ce membre"}
+                              memberRole={m.role}
+                              isSuspended={!!m.is_suspended}
+                              currentRole={currentRole}
+                              loginHint={loginHintFor(m)}
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-300">—</span>
+                        )}
                       </td>
                     </tr>
                   );

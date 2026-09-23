@@ -21,7 +21,7 @@ L'entreprise formalise en 2024 une dynamique commerciale familiale antérieure, 
 2. Client s'engage sur une durée (min_tranches à max_tranches en mois selon le produit)
 3. Client verse par tranches régulières (cash à l'agent, ou en ligne via GeniusPay)
 4. Une fois 100% payé → génération d'un code de retrait unique
-5. Client récupère l'article (livraison à domicile par l'agent, pas de boutique fixe)
+5. Client récupère l'article : remise par l'agent lors d'une tournée, OU retrait au siège à Daloa (décision du 23 septembre 2026)
 
 **Ce n'est PAS du crédit à la consommation** (pas de BNPL type Molo Molo Paye). Aucun risque de crédit pour l'entreprise : le client reçoit après paiement complet.
 
@@ -44,7 +44,7 @@ Ticket moyen : 15 000 – 50 000 FCFA. Clientèle 100–500 récurrents (initial
 - Un seul (Joel Yemian, dev Hokma Labs)
 - Accès secret via `/hokma-admin`
 - Toutes permissions
-- Peut créer des admins
+- **Seul rôle habilité à créer ou nommer un admin**
 
 ### admin
 - Le gérant FAMIENWA (M. N'GUESSAN)
@@ -121,4 +121,4 @@ Boutons "Annuler" et "Confirmer la cotisation".
 
 ## Convention de nommage
 
-Le dossier `/commercial/clients/` est **obsolète** (v0 du code). Le seul dossier à utiliser côté commercial est `/commercial/mes-clients/`. Toute route sous `/commercial/clients/` doit être considérée comme code mort à supprimer.
+Le seul dossier à utiliser côté commercial est `/commercial/mes-clients/`. Le dossier `/commercial/clients/` (v0 du code) a été supprimé du repo : ne pas le recréer.

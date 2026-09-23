@@ -1,122 +1,135 @@
 # LAMANNE — État courant
 
-*Dernière mise à jour : 22 septembre 2026*
+*Dernière mise à jour : 23 septembre 2026*
 
 ## Vue d'ensemble
 
-Projet à ~84% d'avancement (réévalué : le 90% du 8 août mesurait surtout le code écrit, pas la prod-readiness).
+Projet à ~86%. Supabase en plan Pro, disponible.
 
-- Sécurité : ~95% — admin audité (propre), fix annulation client fait mais NON TESTÉ
-- Fonctionnel métier : ~92% — chaîne remboursement incomplète, bugs fonctionnels sur /admin/versements
-- UI/design : ~85% — commercial + client 100% ; admin refait sauf produits, catégories, versements, admin-login
-- Intégration paiement : 0% — GeniusPay : clés + API disponibles, feu vert Joel attendu
-- Observabilité : 0%
-- Tests / prod-readiness : ~10%
-- Infra : Supabase passé en plan Pro (projet réactivé après une pause)
+- Sécurité : ~80% (RÉVISÉ À LA BAISSE — voir « Failles ouvertes »)
+- Fonctionnel métier : ~93% — chaîne remboursement toujours incomplète
+- UI/design : ~92% — reste versements, produits testés mais pas validés, admin-login
+- Intégration paiement : 0% — GeniusPay en attente (domaine à trancher d'abord)
+- Observabilité : 0% — Tests / prod-readiness : ~15%
 
-## Fait à la session du 22 septembre 2026
+## Fait à la session du 23 septembre
 
-Reprise après plus d'un mois d'interruption. Supabase était en pause pendant toute la session :
-RIEN de ce qui suit n'a été testé contre la base ni sur téléphone réel.
+Tout est MERGÉ DANS MAIN (plus aucune branche en attente). Décision : on merge après
+relecture, sans passer par la preview, tant qu'il n'y a pas de vrais utilisateurs.
 
-### 1. Fix annulation / demande de remboursement client (sécurité + fonctionnel)
-Branche `fix/client-annulation-api` (commit 3891803).
-- Bug : les 2 CancelModal de `app/(dashboard)/cotisations/` (liste + détail) faisaient un UPDATE direct
-  navigateur sur `cotisations` → bloqué par RLS → demande de remboursement jamais enregistrée en prod.
-  Le montant remboursé (90%) était en plus calculé côté navigateur (manipulable).
-- Correctif : nouvelle API `POST /api/client/annuler-cotisation` (pattern standard, calquée sur
-  /api/client/versement). Gardes : existence → propriété → status 'active' → pas de demande en cours.
-  `refund_amount = Math.floor(amount_paid * 0.9)` calculé serveur. Notification client non bloquante.
-  Les 2 modals appellent l'API via `apiPost`.
-- DÉCISION MÉTIER : la demande écrit UNIQUEMENT `refund_status: 'requested'` (+ refund_amount,
-  refund_requested_at, cancellation_reason). La cotisation RESTE `active`. L'annulation effective
-  (`status: 'cancelled'`) doit se faire à l'approbation admin (pas encore implémenté, voir dettes).
-- La garde doublon est tolérante : `if (cot.refund_status && cot.refund_status !== 'none')`
-  (le défaut réel de la colonne en base — NULL ou 'none' — n'a pas pu être vérifié).
+### 1. Merges des branches du 22 septembre
+`fix/client-annulation-api` puis `design/admin-lot3a` (= les 4 lots admin empilés).
 
-### 2. Audit sécurité du portail admin
-Verdict : architecture PROPRE. 0 write direct navigateur, 0 Math.random, 0 RPC appelée (donc 0 RPC
-fantôme). Toutes les écritures passent par les 8 API routes admin (10 handlers).
-Seul écart : les 3 pages produits sont des Client Components → pas de `requirePageAuth` possible
-(layout + API guards protègent quand même). À traiter au lot 4 via server wrapper.
+### 2. Lot 3b — retouches (`fix/lot3b-retouches`)
+Montant « payé / total » sur /admin/cotisations (carte + tableau), filtres en rangée
+scrollable, suppression du mot « boutique » dans admin/retraits et les 2 écrans client
+→ « à votre agent ou au siège à Daloa » (DÉCISION MÉTIER, voir business.md).
 
-### 3. Refonte admin — lots design (chaque lot empilé sur le précédent)
-- **Lot 1 — `design/admin-fondations`** (d379c9b) : layout, sidebar, bottom nav. Hex → tokens,
-  `#1a1f36` → `bg-gray-900` (unifie header mobile/bottom nav avec la sidebar), Sora sur les titres,
-  zones tactiles 44px, min-w-0/truncate, console.log du rôle supprimé du layout.
-- **Lot 2a — `design/admin-lot2a`** (1956453) : remboursements, retraits, équipe.
-  Singleton `supabaseAdmin` (fin des createClient locaux), console.log supprimés, N+1 éliminés
-  (pattern Map), `fetch` brut → `apiPatch` avec try/catch (plus de refresh sur échec), design.
-- **Lot 2b — `design/admin-lot2b`** (852f447 + commit "carte Clients") : dashboard + clients.
-  Héros = total collecté + ProgressRing du taux de complétion moyen des cotisations actives.
-  4 StatCards : Cotisations actives / Clients / Retraits en attente / Remboursements
-  (prop `bg` hex → `bgClass`). N+1 des dernières cotisations éliminé. Palette corrigée (voir 4).
-  Bouton « Approuver » repassé en primary (contraste). `justify-center` ajouté sur équipe.
-- **Lot 3a — `design/admin-lot3a`** : cotisations. Singleton, N+1 éliminé, garde division par zéro
-  sur la progression, plus aucun `any`, `.progress-bar-fill`, état vide harmonisé.
+### 3. Lot 4a — produits (`design/admin-lot4a`)
+- **Server wrappers** : les 3 pages produits ont enfin `requirePageAuth` (les Client
+  Components sont devenus ProduitsClient / NouveauProduitClient / ModifierProduitClient).
+- **Liste** : cartes mobiles (l'ancienne ligne était illisible), recherche insensible aux
+  accents, filtre par catégorie, erreurs de chargement ET d'action visibles (fin des alert()),
+  actions 44px, `<Button asChild>` (un <button> dans un <a> était du HTML invalide).
+- **ProductForm partagé** (~700 lignes dupliquées éliminées) : upload après validation,
+  extension déduite du MIME, `upsert: false`, rejet des formats et des fichiers > 5 Mo avec
+  message, nettoyage best effort des fichiers envoyés si l'API échoue, revokeObjectURL,
+  switchs `role="switch"`. **La page « modifier » gère enfin les photos** (impossible avant).
+- **API** : plafonds prix (100 M) et stock, cohérence min/max quand un SEUL des deux est
+  envoyé (lecture DB préalable), 404 au lieu d'un `{ok:true}` silencieux sur id inexistant,
+  images restreintes au préfixe du bucket, DELETE bloqué par TOUTE cotisation liée + 23503.
 
-### 4. Palette — tokens Tailwind corrigés
-Doublons découverts : `lamanne.success` = primary et `lamanne.warning` = accent.
-Corrigé dans `tailwind.config.ts` : `success: #2D9B6F`, `warning: #F5A623`, ajout `soft: #FEF3D7`
-(or pâle des avatars/badges, jamais tokenisé avant). Règle : bouton plein = primary ;
-success réservé aux fonds et textes de statut.
+### 4. Base — FK passées en ON DELETE RESTRICT (`supabase/fk-restrict.sql`)
+`cotisations.product_id`, `cotisations.user_id` et `payments.user_id` étaient en CASCADE :
+supprimer un produit ou un compte effaçait cotisations ET versements. RÈGLE MÉTIER : on
+DÉSACTIVE ou on SUSPEND, on ne supprime jamais.
 
-## Branches — AUCUNE mergée, AUCUNE testée
-- `fix/client-annulation-api` (part de main, indépendante)
-- `design/admin-fondations` → `design/admin-lot2a` → `design/admin-lot2b` → `design/admin-lot3a`
-  (chaîne empilée : merger `design/admin-lot3a` apporte les 4 lots)
+### 5. Données — catégories
+53 des 58 produits réaffectés de « Test » vers 9 catégories (créées : Matériaux de
+construction, Motos & Transport). Restent dans « Test » : Gbggg et Test Produit H-2 Modif
+(données de test, serviront à tester la suppression avec réaffectation), plus N'goblalè,
+Sè ba et Tani kpa (nature à préciser par Joel).
+
+### 6. BUG CRITIQUE corrigé — remboursement commercial
+`POST /api/commercial/remboursement` renvoyait `{ok:true}` SANS RIEN ÉCRIRE : insert dans une
+table `refund_requests` inexistante, puis repli sur `status: 'refund_requested'` (valeur
+refusée par le CHECK), erreur jamais testée. Le client recevait une notification promettant
+un remboursement dont aucune trace n'existait. Réécrite sur le pattern standard, calquée sur
+`/api/client/annuler-cotisation`. `client_id` retiré du schéma (déduit de la cotisation).
+Le modal affichait 100% des versements au lieu des 90% réellement enregistrés — corrigé.
+
+### 7. Incidents de session
+- **Cache PWA** : la prod paraissait ne pas se mettre à jour ; c'était la PWA installée.
+  Réflexe : rechargement forcé ou navigation privée avant de conclure.
+- **Build cassé sur main** : un merge est parti malgré un `tsc` en échec (blocs de commandes
+  séparés). Désormais : une seule chaîne en `&&` du contrôle jusqu'au push.
+
+## Failles ouvertes — PRIORITÉ ABSOLUE (routes `equipe`)
+L'audit du 22 septembre les avait déclarées propres : c'était FAUX, elles ne suivent pas le
+pattern standard et n'avaient pas été relues.
+- **Mot de passe = PIN 4 chiffres + "LM"** (règle publique, email devinable
+  `phone_<chiffres>@lamanne.app`) → 10 000 combinaisons, sans limitation de débit. Touche
+  des comptes admin. LA PLUS GRAVE.
+- **Un admin peut créer et nommer des admins** (contredit business.md).
+- **`deleteUser` sans garde sur le rôle cible** : un client pouvait être supprimé (atténué
+  depuis par les FK RESTRICT, mais la garde applicative manque).
+- Deux routes font la même suppression ; pas de `checkOrigin` ; id non validé ; `createClient`
+  locaux ; messages Postgres renvoyés au navigateur.
+
+DÉCISIONS PRISES : mot de passe aléatoire fort généré serveur, affiché UNE SEULE FOIS à la
+création, avec action « régénérer » réservée au super_admin ; création et nomination d'admins
+réservées au super_admin. CONSÉQUENCES : `/login` (onglet téléphone, `maxLength={4}` et
+`pin + "LM"`) doit accepter un mot de passe libre, sinon les commerciaux ne peuvent plus se
+connecter ; 9 comptes existants (8 commerciaux + 1 admin) à régénérer et redistribuer.
 
 ## Dettes techniques
 
-### Nouvelles (session 22 sept.)
-- **/admin/versements — 3 bugs FONCTIONNELS** : (1) le filtre commercial s'applique en JS APRÈS la
-  pagination (ne filtre que les 50 lignes de la page) ; (2) recherche appliquée 2 fois (SQL sur
-  transaction_ref seul, puis JS sur nom/tél) → chercher un client par nom ne renvoie presque rien ;
-  (3) KPIs (total, nombre) calculés sur les 50 lignes affichées, pas sur la sélection.
-  + N+1 ~150 requêtes / 50 versements. Correctif = RPC Postgres (lot data).
-- **ExportButton** de /admin/versements appelle `/api/admin/versements/export` qui N'EXISTE PAS.
-- **Dashboard « Total collecté »** : `select("amount_paid")` sur TOUTE la table + reduce JS à chaque
-  affichage → RPC SUM. Idem pour les compteurs.
-- **/admin/cotisations sans pagination** (charge toute la table) ; son `.in("id", userIds)` n'est pas
-  borné → casse silencieusement au-delà de ~500 clients distincts. Même risque sur /admin/clients
-  (`.in("user_id", clientIds)`).
-- **Pas de FK `cotisations.user_id → profiles.id`** (les deux pointent sur auth.users) → embed
-  PostgREST `profiles(...)` impossible, d'où le pattern Map.
-- **Chaîne remboursement incomplète** : l'approbation admin passe `refund_status: 'approved'` mais ne
-  passe pas `status: 'cancelled'` et rien ne gère l'étape `refunded`.
-- `requirePageAuth` absent des 3 pages produits (Client Components) → server wrapper au lot 4.
-- Échecs d'actions admin silencieux (console.error seul) → toasts. Idem échec de chargement retraits.
-- Frais d'annulation 10% en dur (`* 0.9`) → paramètre métier configurable un jour.
-- Contraste : texte `lamanne-success` (#2D9B6F) sur blanc ~3,1:1 (sous AA) — à surveiller au test.
+### Outillage (nouveau)
+- **Next 14.2.5 vulnérable** (CVE-2025-29927, corrigée en 14.2.25) → monter à la dernière
+  14.2.x avant la démo. Risque atténué : la sécurité ne repose pas sur le middleware.
+- `@typescript-eslint` incompatible avec TS 5.9.3 (faux négatifs possibles).
+- `next-pwa` non maintenu depuis 2023 → évaluer `serwist`. `public/sw.js` est VERSIONNÉ alors
+  qu'il est régénéré à chaque build → à mettre en .gitignore.
+- **GitHub Action `tsc` + `lint` sur chaque push** : aurait bloqué le merge cassé du jour.
 
-### Héritées (8 août, toujours ouvertes)
+### Fonctionnel / données (inchangé)
+- /admin/versements : 3 bugs fonctionnels + N+1 ~150 requêtes ; `createClient` local restant.
+- ExportButton appelle `/api/admin/versements/export` qui N'EXISTE PAS.
+- Dashboard « Total collecté » : select sur toute la table + reduce JS → RPC SUM.
+- /admin/cotisations sans pagination ; `.in()` non bornés (casse au-delà de ~500 UUIDs).
+- **Chaîne remboursement incomplète** : l'approbation ne passe pas `status: 'cancelled'` ;
+  l'étape `refunded` n'existe PAS dans le CHECK de `refund_status`.
+- **Deux routes écrivent la même demande** (client + commercial) → risque de dérive, à unifier.
+- Pas de FK `cotisations.user_id → profiles.id` (0 cotisation orpheline : ajout possible).
+- Échecs d'actions admin silencieux → toasts. Frais 10% en dur. Pas de cache catalogue.
+- Race condition amount_paid ; colonne received_by manquante sur payments.
 - Page orpheline app/commercial/mes-clients/[clientId]/nouvelle-cotisation (code mort).
-- Code mort sous /commercial/clients/.
-- API /api/commercial/clients à harmoniser sur helpers standard.
-- Démarrage cotisation non atomique (insert cotisation + payment séparés).
-- Deadline calculée en double (trigger + JS, inoffensif).
-- product-card.tsx en hex dur.
-- Idempotence versement : clé par clic (pas double-clic strict).
-- Race condition amount_paid (hors record_payment).
+- RÉSOLU : le dossier /commercial/clients/ n'existe plus dans le repo.
 
-## Chantiers restants avant MVP
-Tests + merge des 5 branches ; lot data/RPC ; lot 4 (produits + catégories) ; versements design ;
-admin-login ; chaîne remboursement ; GeniusPay ; observabilité (Sentry + Vercel Spend + Uptime Robot) ;
-Vercel Pro ; grants explicites (deadline 30 oct. 2026) ; cron expirations ; domaine lamanne.ci ;
-guide FAMIENWA .docx ; refonte auth (Google + WhatsApp OTP) ; Resend ; tests E2E ; mise en prod.
+### Contenu
+- CGU et landing parlent d'une « boutique physique à Abidjan » : faux (Daloa). Les CGU
+  doivent porter les mentions légales FAMIENWA et être relues par un professionnel.
 
-## Infrastructure
-- Supabase : plan Pro activé (22 sept.), projet réactivé après pause.
-- Deployment Protection Vercel DÉSACTIVÉE (tests mobiles previews) — réactiver avant lancement.
-- Upgrade Vercel Pro avant lancement. Bloqueur : cartes africaines refusées par Stripe
-  (tester UBA débit, Chipper Cash, Eversend).
-- Attack Challenge Mode OFF ; AI Bots blocker ON.
-- 30 octobre 2026 : fin des GRANTs auto Supabase pour nouvelles tables public.
+## Tests EN ATTENTE (rien n'a été testé aujourd'hui)
+1. Annulation client → refund_status 'requested', cotisation encore 'active', 2e demande 409.
+2. Remboursement commercial (après correctif) → montant = 90% des versements.
+3. Approbation / rejet dans /admin/remboursements.
+4. Lot 4a : liste, ajout avec photo, modification avec retrait/ajout, fichier HEIC ou > 5 Mo
+   refusé, prix délirant refusé.
+5. Notification fantôme `82fe37a3-9e7b-42d0-ad20-b5ca0c543098` à supprimer si ce n'est pas fait.
+6. Photos manquantes à ajouter (3 « Tassa Dan » + Casserole ronde 6 pièces) et doublons à
+   désactiver.
+
+## Infrastructure & décisions en suspens
+- Domaine : lamanne.shop puis lamanne.ci envisagé. TRANCHER AVANT l'onboarding GeniusPay
+  (webhooks, checkOrigin, CSP, start_url PWA, redirections Auth, réinstallation PWA côté
+  utilisateurs). Question ouverte : domaine au nom de FAMIENWA ou de Hokma Labs ?
+- Supabase : transfert entre ORGANISATIONS possible depuis le dashboard, conserve URL et clés
+  (rien à migrer). Une migration vers un projet neuf changerait le project ref et casserait
+  toutes les URLs de photos stockées en base. Faire le transfert AVANT GeniusPay.
+- Vercel Hobby : upgrade Pro requis avant d'encaisser (usage commercial). Bloqueur cartes.
+- Deployment Protection désactivée ; 30 octobre 2026 : fin des GRANTs auto Supabase.
 
 ## Objectif court terme
-Démo propre pour le gérant FAMIENWA (M. N'GUESSAN Kouamé Félix). Pas de vrais users en prod.
-
-## Méthode
-Branche par lot, commits fréquents, relecture ligne par ligne, merge après test mobile réel.
-Prompts Claude Code ciblés (fichiers autorisés + interdictions + grep vérif). Reconnaissance
-(cat/grep) en terminal direct. Joel n'édite pas à la main. Reco CTO décisive attendue.
+Démo propre pour M. N'GUESSAN. La démo se fera sur la PROD : remettre la preview obligatoire
+avant la démo et avant tout vrai utilisateur.

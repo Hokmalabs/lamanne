@@ -6,8 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UserPlus, X, ChevronDown } from "lucide-react";
+import { apiPost, ApiClientError } from "@/lib/api-client";
+import PasswordRevealDialog from "./PasswordRevealDialog";
 
-export default function AddMemberButton() {
+type CreatedMember = {
+  ok: true;
+  member_id: string;
+  password: string;
+};
+
+export default function AddMemberButton({ currentRole }: { currentRole: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -17,10 +25,16 @@ export default function AddMemberButton() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"commercial" | "admin">("commercial");
-  const [pin, setPin] = useState("");
+
+  // Secret affiché une seule fois : vidé à la fermeture du dialog
+  const [createdPassword, setCreatedPassword] = useState<string | null>(null);
+  const [createdName, setCreatedName] = useState("");
+  const [createdHint, setCreatedHint] = useState("");
+
+  const canCreateAdmin = currentRole === "super_admin";
 
   const reset = () => {
-    setFullName(""); setPhone(""); setEmail(""); setRole("commercial"); setPin("");
+    setFullName(""); setPhone(""); setEmail(""); setRole("commercial");
     setError(null);
   };
 
@@ -31,21 +45,39 @@ export default function AddMemberButton() {
     setLoading(true);
     setError(null);
 
-    const res = await fetch("/api/admin/equipe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ full_name: fullName, phone, email, role, pin }),
-    });
+    const trimmedEmail = email.trim();
+    const memberName = fullName.trim();
+    const memberPhone = phone.trim();
 
-    setLoading(false);
+    try {
+      const result = await apiPost<CreatedMember>("/api/admin/equipe", {
+        full_name: memberName,
+        phone: memberPhone,
+        email: trimmedEmail,
+        role,
+      });
 
-    if (!res.ok) {
-      const d = await res.json();
-      setError(d.error ?? "Erreur lors de la création.");
-      return;
+      setCreatedName(memberName);
+      setCreatedHint(
+        trimmedEmail
+          ? `Connexion par email : ${trimmedEmail}`
+          : `Connexion : onglet Téléphone, avec le numéro ${memberPhone}`,
+      );
+      setCreatedPassword(result.password);
+      handleClose();
+    } catch (e) {
+      setError(
+        e instanceof ApiClientError ? e.message : "Erreur lors de la création.",
+      );
+    } finally {
+      setLoading(false);
     }
+  };
 
-    handleClose();
+  const handlePasswordDialogClose = () => {
+    setCreatedPassword(null);
+    setCreatedName("");
+    setCreatedHint("");
     router.refresh();
   };
 
@@ -57,20 +89,28 @@ export default function AddMemberButton() {
       </Button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 py-6 overflow-y-auto">
           {/* Backdrop */}
           <div className="absolute inset-0 bg-black/50" onClick={handleClose} />
 
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 z-10">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 z-10 my-auto max-h-[calc(100vh-3rem)] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-black text-gray-900">Ajouter un membre</h2>
-              <button onClick={handleClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+              <h2 className="font-sora text-lg font-black text-gray-900">Ajouter un membre</h2>
+              <button
+                type="button"
+                onClick={handleClose}
+                aria-label="Fermer"
+                className="h-11 w-11 -mr-2 inline-flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+              >
                 <X className="h-4 w-4 text-gray-500" />
               </button>
             </div>
 
             {error && (
-              <div className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+              <div
+                role="alert"
+                className="mb-4 rounded-xl bg-lamanne-danger/10 text-lamanne-danger text-sm px-4 py-3"
+              >
                 {error}
               </div>
             )}
@@ -84,7 +124,7 @@ export default function AddMemberButton() {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
-                  style={{ fontSize: "16px" }}
+                  className="min-h-[44px] text-base sm:text-sm"
                 />
               </div>
 
@@ -93,12 +133,15 @@ export default function AddMemberButton() {
                 <Input
                   id="m-phone"
                   type="tel"
-                  placeholder="+225 07 00 00 00 00"
+                  placeholder="07 00 00 00 00"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   required
-                  style={{ fontSize: "16px" }}
+                  className="min-h-[44px] text-base sm:text-sm"
                 />
+                <p className="text-xs text-gray-500">
+                  10 chiffres, l&apos;indicatif +225 est ajouté automatiquement.
+                </p>
               </div>
 
               <div className="space-y-1.5">
@@ -109,8 +152,12 @@ export default function AddMemberButton() {
                   placeholder="laisser vide → connexion par téléphone"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  style={{ fontSize: "16px" }}
+                  className="min-h-[44px] text-base sm:text-sm"
                 />
+                <p className="text-xs text-gray-500">
+                  Si un email est renseigné, le membre se connectera avec cet email (et non
+                  avec son téléphone).
+                </p>
               </div>
 
               <div className="space-y-1.5">
@@ -120,42 +167,31 @@ export default function AddMemberButton() {
                     id="m-role"
                     value={role}
                     onChange={(e) => setRole(e.target.value as "commercial" | "admin")}
-                    className="w-full appearance-none border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-lamanne-primary/20 pr-10"
-                    style={{ fontSize: "16px" }}
+                    className="w-full min-h-[44px] appearance-none border border-gray-200 rounded-xl px-4 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-lamanne-primary/20 pr-10 bg-white"
                   >
                     <option value="commercial">Commercial</option>
-                    <option value="admin">Admin</option>
+                    {canCreateAdmin && <option value="admin">Admin</option>}
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="m-pin">Code PIN (4 chiffres)</Label>
-                <Input
-                  id="m-pin"
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={4}
-                  placeholder="••••"
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  required
-                  className="text-center text-2xl tracking-[0.5em]"
-                  style={{ fontSize: "24px" }}
-                />
-                <p className="text-xs text-gray-400">
-                  Le membre se connectera avec son téléphone + ce PIN.
-                </p>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <Button type="button" variant="outline" className="flex-1" onClick={handleClose}>
+              <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full sm:flex-1 min-h-[44px]"
+                  onClick={handleClose}
+                >
                   Annuler
                 </Button>
-                <Button type="submit" className="flex-1" disabled={loading || pin.length !== 4}>
+                <Button
+                  type="submit"
+                  className="w-full sm:flex-1 min-h-[44px]"
+                  disabled={loading}
+                >
                   {loading
-                    ? <span className="flex items-center gap-2"><span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Création...</span>
+                    ? <span className="flex items-center gap-2"><span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Création…</span>
                     : "Créer le compte"}
                 </Button>
               </div>
@@ -163,6 +199,14 @@ export default function AddMemberButton() {
           </div>
         </div>
       )}
+
+      <PasswordRevealDialog
+        open={createdPassword !== null}
+        memberName={createdName}
+        password={createdPassword ?? ""}
+        loginHint={createdHint}
+        onClose={handlePasswordDialogClose}
+      />
     </>
   );
 }

@@ -10,20 +10,58 @@ import { supabase } from "@/lib/supabase";
 import { Eye, EyeOff, LogIn, Phone, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Logo from "@/components/Logo";
+import { normalizeCIPhone, phoneToLoginEmail, PHONE_FORMAT_MESSAGE } from "@/lib/phone";
 
-function normalizePhone(phone: string): string {
-  return phone.replace(/\s/g, "").replace(/^00/, "+");
+/**
+ * Traduit la saisie de l'onglet Téléphone en mot de passe Supabase.
+ *
+ * Deux publics cohabitent : les clients (PIN 4 chiffres, historique) et les
+ * membres de l'équipe (mot de passe fort XXXX-XXXX-XXXX). La saisie du mot de
+ * passe fort est tolérante : minuscules, espaces ou tirets oubliés.
+ */
+// Non exportée : un page.tsx Next.js ne peut exporter que default et la config de route.
+function resolvePhonePassword(raw: string): string | null {
+  const v = raw.trim();
+  if (!v) return null;
+
+  // TEMPORAIRE — PIN client legacy, supprimé par feat/auth-pin
+  if (/^\d{4}$/.test(v)) return v + "LM";
+
+  const compact = v.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (compact.length === 12) {
+    return `${compact.slice(0, 4)}-${compact.slice(4, 8)}-${compact.slice(8, 12)}`;
+  }
+
+  return v.toUpperCase();
 }
 
-function phoneToEmail(phone: string): string {
-  const digits = normalizePhone(phone).replace(/\D/g, "");
-  return `phone_${digits}@lamanne.app`;
+/**
+ * Filtre la destination de redirection après connexion.
+ *
+ * Empêche /login?redirectTo=//site-pirate de renvoyer l'utilisateur hors de
+ * LAMANNE juste après sa connexion (hameçonnage).
+ */
+// Non exportée : un page.tsx Next.js ne peut exporter que default et la config de route.
+function safeRedirect(raw: string | null): string | null {
+  if (!raw) return null;
+
+  if (!raw.startsWith("/")) return null;
+  if (raw.startsWith("//") || raw.startsWith("/\\")) return null;
+  if (raw.includes("\\")) return null;
+
+  try {
+    const url = new URL(raw, window.location.origin);
+    if (url.origin !== window.location.origin) return null;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return null;
+  }
 }
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirectTo") || "/dashboard";
+  const rawRedirectTo = searchParams.get("redirectTo");
 
   const [tab, setTab] = useState<"email" | "phone">("email");
   // Email form
@@ -32,7 +70,8 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   // Phone form
   const [phone, setPhone] = useState("");
-  const [pin, setPin] = useState("");
+  const [phonePassword, setPhonePassword] = useState("");
+  const [showPhonePassword, setShowPhonePassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +90,9 @@ function LoginForm() {
       return null;
     }
 
-    if (redirectTo !== "/dashboard") return redirectTo;
+    const requested = safeRedirect(rawRedirectTo);
+    if (requested && requested !== "/dashboard") return requested;
+
     if (profile?.role === "super_admin" || profile?.role === "admin") return "/admin";
     if (profile?.role === "commercial") return "/commercial";
     return "/dashboard";
@@ -78,20 +119,28 @@ function LoginForm() {
     setLoading(true);
     setError(null);
 
-    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-      setError("Le code PIN doit être exactement 4 chiffres.");
+    const normalizedPhone = normalizeCIPhone(phone);
+    if (!normalizedPhone) {
+      setError(PHONE_FORMAT_MESSAGE);
       setLoading(false);
       return;
     }
 
-    const fakeEmail = phoneToEmail(phone);
+    const resolved = resolvePhonePassword(phonePassword);
+    if (!resolved) {
+      setError("Saisissez votre code PIN ou votre mot de passe.");
+      setLoading(false);
+      return;
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
-      email: fakeEmail,
-      password: pin + "LM",
+      email: phoneToLoginEmail(normalizedPhone),
+      password: resolved,
     });
 
     if (error) {
-      setError("Numéro de téléphone ou code PIN incorrect.");
+      // Message unique : ne pas révéler si le numéro existe
+      setError("Numéro ou code incorrect.");
       setLoading(false);
       return;
     }
@@ -133,7 +182,10 @@ function LoginForm() {
       </div>
 
       {error && (
-        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+        <div
+          role="alert"
+          className="mb-4 rounded-xl bg-lamanne-danger/10 text-lamanne-danger text-sm px-4 py-3"
+        >
           {error}
         </div>
       )}
@@ -158,6 +210,7 @@ function LoginForm() {
                 value={password} onChange={(e) => setPassword(e.target.value)} required
                 autoComplete="current-password" className="pr-11" style={{ fontSize: "16px" }} />
               <button type="button" onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -172,15 +225,33 @@ function LoginForm() {
         <form onSubmit={handlePhoneLogin} className="space-y-5">
           <div className="space-y-1.5">
             <Label htmlFor="phone">Numéro de téléphone</Label>
-            <Input id="phone" type="tel" placeholder="+225 07 00 00 00 00" value={phone}
+            <Input id="phone" type="tel" placeholder="07 00 00 00 00" value={phone}
               onChange={(e) => setPhone(e.target.value)} required autoComplete="tel"
               style={{ fontSize: "16px" }} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="pin">Code PIN (4 chiffres)</Label>
-            <Input id="pin" type="password" inputMode="numeric" maxLength={4}
-              placeholder="••••" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              required className="text-center text-2xl tracking-[0.5em]" style={{ fontSize: "24px" }} />
+            <Label htmlFor="phone-password">Code PIN ou mot de passe</Label>
+            <div className="relative">
+              <Input
+                id="phone-password"
+                type={showPhonePassword ? "text" : "password"}
+                value={phonePassword}
+                onChange={(e) => setPhonePassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
+                maxLength={64}
+                className="pr-11"
+                style={{ fontSize: "16px" }}
+              />
+              <button type="button" onClick={() => setShowPhonePassword(!showPhonePassword)}
+                aria-label={showPhonePassword ? "Masquer le code" : "Afficher le code"}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                {showPhonePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           <Button type="submit" className="w-full h-12 text-base font-bold" disabled={loading}>
             {loading ? <span className="flex items-center gap-2"><span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Connexion...</span>

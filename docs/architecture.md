@@ -111,6 +111,11 @@ export async function POST(req: NextRequest) {
 
   La cotisation **reste `active`** : l'annulation effective se fait à l'approbation admin. Garde anti-doublon tolérante aux valeurs `NULL` / `'none'` de `refund_status`.
 
+#### Routes commercial (`app/api/commercial/**`)
+
+- **`/api/commercial/remboursement`** — demande de remboursement initiée par l'agent pour SON client. Écrit les mêmes champs que `/api/client/annuler-cotisation` : `refund_status = 'requested'`, `refund_amount = floor(amount_paid * 0.9)` **calculé serveur**, `refund_requested_at`, `cancellation_reason`. La cotisation **reste `active`**.
+  Le `client_id` n'est **JAMAIS** accepté depuis le navigateur : le propriétaire est déduit de `cotisations.user_id`, et l'assignation (`profiles.assigned_commercial`) est vérifiée serveur quand le rôle est `commercial`.
+
 ### Pages server components sensibles
 
 Commencent TOUJOURS par :
@@ -162,12 +167,45 @@ const product = pickOne(cotisation.products);
 
 **Évolution envisagée** : ajouter une FK `cotisations.user_id` → `profiles.id` pour rendre les embeds possibles et supprimer ce pattern.
 
+## Intégrité référentielle
+
+Script `supabase/fk-restrict.sql`, appliqué le **22 septembre 2026** :
+
+- `cotisations.product_id` → `products(id)` : **ON DELETE RESTRICT**
+- `cotisations.user_id` → `auth.users(id)` : **ON DELETE RESTRICT**
+- `payments.user_id` → `auth.users(id)` : **ON DELETE RESTRICT**
+- `payments.cotisation_id` → `cotisations(id)` : **ON DELETE CASCADE** (inchangé — les versements n'ont pas de sens sans leur cotisation)
+
+**Règle** : on **désactive** un produit (`is_active = false`) et on **suspend** un compte (`is_suspended = true`), on ne supprime jamais. Une suppression qui violerait une FK remonte l'erreur Postgres `23503`, que les routes doivent traduire en 409 explicite.
+
+## RPC Postgres
+
+Toute nouvelle fonction créée dans le schéma `public` doit être verrouillée explicitement :
+
+```sql
+revoke execute on function public.ma_fonction(...) from public, anon, authenticated;
+grant  execute on function public.ma_fonction(...) to service_role;
+```
+
+Sans ce verrouillage, la fonction est **appelable avec la clé anon depuis le navigateur**, ce qui contourne tout le modèle de sécurité (les RPC s'exécutent côté DB, hors des gardes des API routes). À appliquer dès la création, au même titre que les GRANTs de tables (voir « Alertes calendrier »).
+
 ## Storage
 
 Bucket `products` (photos produits) :
 - Limite : 5 MB par fichier
 - MIME whitelist : `image/jpeg`, `image/png`, `image/webp`, `image/gif`
 - Policies : SELECT public, INSERT/UPDATE/DELETE réservés à admin/super_admin
+
+### Upload produits
+
+L'upload depuis le navigateur est **autorisé** pour ce bucket (les policies le réservent déjà à admin/super_admin) — c'est la seule exception à la règle « aucune écriture directe depuis le client ». Contraintes :
+
+- **Chemin** = `crypto.randomUUID()` + extension, jamais le nom du fichier d'origine.
+- **Extension déduite du type MIME** (`image/jpeg` → `jpg`, `png`, `webp`, `gif`), jamais de l'extension fournie par l'utilisateur.
+- **`upsert: false`** et **`contentType` explicite** à l'upload.
+- **Upload après validation** du formulaire, et **nettoyage best effort** (`storage.remove(paths)`) si un upload suivant ou l'appel API échoue — pas de fichier orphelin en cas d'échec.
+- Côté API, les URLs reçues sont **restreintes au préfixe public du bucket** `products` (`${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/products/`) : toute autre URL est rejetée.
+- Les photos retirées d'un produit existant sortent du tableau `images` mais ne sont pas supprimées du Storage (nettoyage serveur à prévoir).
 
 ## Headers HTTP
 
@@ -190,6 +228,8 @@ Voir `next.config.js` :
 
 **Agrégat en JS sur une table complète** : `select` sans filtre suivi d'un `reduce` côté Node charge toute la table en mémoire et grossit linéairement. Utiliser une **RPC Postgres** (`SUM`, `COUNT`, `GROUP BY`).
 
+**Repli silencieux sur erreur DB** : une route qui rattrape une erreur d'écriture sans la tester (ou qui enchaîne sur un second write non vérifié) et renvoie quand même `{ ok: true }` **ment à l'utilisateur** — l'action semble réussie alors que rien n'a été écrit. Cas réel : `/api/commercial/remboursement` insérait dans une table inexistante puis basculait sur un statut refusé par le CHECK, le tout sans jamais tester l'erreur (corrigé le 23 septembre 2026). Toute erreur DB doit produire une `ApiError`.
+
 **`.in()` avec plus de 500 UUIDs** : URL PostgREST dépasse 16KB et est rejetée silencieusement (data:[] sans erreur). Utiliser une RPC Postgres pour les JOINs côté serveur.
 
 ## Dette technique connue
@@ -203,7 +243,6 @@ Voir `next.config.js` :
 - **Dashboard "Total collecté"** : `select` sur toute la table `payments` + `reduce` JS → à remplacer par une **RPC `SUM`**.
 - **`/admin/cotisations`** : aucune pagination, et `.in()` non bornés (cotisations + clients) → casse silencieusement au-delà de ~500 UUIDs.
 - **`ExportButton`** appelle `/api/admin/versements/export`, route **inexistante**.
-- **`requirePageAuth` absent des 3 pages produits** (ce sont des Client Components) → encapsuler dans un server wrapper.
 - **Approbation de remboursement** : ne passe pas la cotisation en `status = 'cancelled'`.
 - **Échecs d'actions admin silencieux** → remplacer par des toasts.
 - **Frais de remboursement 10% en dur** dans le code → à externaliser (config ou table paramètres).
@@ -211,7 +250,11 @@ Voir `next.config.js` :
 - **Pas d'observabilité** : Sentry, Vercel Spend alerts, Uptime Robot à installer avant lancement réel.
 - **Race condition amount_paid** non patchée (besoin RPC, différée volume faible).
 - **Colonne received_by manquante** sur payments (commercial inféré via `cotisations.created_by`).
-- **Code mort** sous `/commercial/clients/` (dossier v0 non supprimé, cause bugs de navigation).
+- **Routes `equipe`** à reprendre (détail dans `current.md`).
+- **Next 14.2.5 vulnérable** : montée de version à planifier.
+- **`@typescript-eslint` incompatible avec TS 5.9.3** (avertissement au lint).
+- **`next-pwa` non maintenu** : remplacement à étudier.
+- **`public/sw.js` versionné à tort** : c'est un artefact de build, il doit sortir du repo.
 
 **Résolus récemment** : N+1 du dashboard, `/admin/remboursements`, `/admin/retraits` et `/admin/cotisations` (pattern Map, voir « Relations & jointures PostgREST »).
 
