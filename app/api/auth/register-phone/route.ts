@@ -1,60 +1,50 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { randomInt } from "crypto";
-import { supabaseAdmin } from "@/lib/supabase-admin";
-import {
-  checkOrigin,
-  validateInput,
-  handleApiError,
-  ApiError,
-} from "@/lib/api-security";
+import { checkOrigin, validateInput, handleApiError } from "@/lib/api-security";
+import { createClientAccount } from "@/lib/client-accounts";
+import { openSessionForEmail } from "@/lib/phone-session";
 
+export const dynamic = "force-dynamic";
+
+// Tout autre champ (role, referral_code_used…) est retiré par Zod
 const schema = z.object({
-  full_name: z.string().min(2).max(100).trim(),
-  phone: z
+  full_name: z
     .string()
-    .regex(
-      /^\+\d{10,15}$/,
-      "Numéro de téléphone invalide (format attendu : +225...)",
-    ),
-  pin: z.string().length(4).regex(/^\d{4}$/).optional(),
+    .trim()
+    .min(2, "Le nom doit contenir au moins 2 caractères")
+    .max(100, "Nom trop long (100 caractères maximum)"),
+  phone: z.string().min(1, "Numéro requis").max(30, "Numéro trop long"),
+  pin: z.string().max(10, "Code PIN invalide"),
 });
 
-export async function POST(request: Request) {
+/**
+ * Inscription libre d'un client (route PUBLIQUE).
+ * Le client choisit son PIN ; la session est ouverte dans la foulée.
+ */
+export async function POST(req: NextRequest) {
   try {
-    checkOrigin(request);
-    const body = validateInput(schema, await request.json());
+    checkOrigin(req);
+    const { full_name, phone, pin } = validateInput(schema, await req.json());
 
-    const { full_name, phone } = body;
-    const pin = body.pin ?? randomInt(1000, 10000).toString();
-
-    const digits = phone.replace(/\D/g, "");
-    const email = `phone_${digits}@lamanne.app`;
-
-    const { error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password: pin + "LM",
-      email_confirm: true,
-      user_metadata: { full_name, phone },
+    const { loginEmail } = await createClientAccount({
+      fullName: full_name,
+      rawPhone: phone,
+      createdBy: null,
+      assignedCommercial: null,
+      pinMode: { kind: "chosen", pin },
     });
 
-    if (createError) {
-      const msg = createError.message.toLowerCase();
-      if (
-        msg.includes("already") ||
-        msg.includes("registered") ||
-        createError.status === 422
-      ) {
-        throw new ApiError(
-          409,
-          "Ce numéro de téléphone est déjà utilisé",
-          "INVALID_INPUT",
-        );
-      }
-      throw createError;
+    // Le compte existe quoi qu'il arrive : un échec de session n'annule rien,
+    // le client pourra se connecter normalement
+    let session = true;
+    try {
+      await openSessionForEmail(loginEmail);
+    } catch (e) {
+      console.error("[register-phone] ouverture de session:", e);
+      session = false;
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, session }, { status: 201 });
   } catch (e) {
     return handleApiError(e);
   }
