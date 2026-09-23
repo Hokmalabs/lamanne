@@ -1,70 +1,94 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { loadManageableTarget } from "@/lib/equipe-guards";
+import {
+  requireAuth,
+  requireRole,
+  validateInput,
+  checkOrigin,
+  handleApiError,
+  ApiError,
+} from "@/lib/api-security";
 
-const admin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = "force-dynamic";
 
-const schema = z.object({
-  member_id: z.string().uuid(),
-  action: z.enum(["suspend", "reactivate", "delete"]),
+// ~100 ans : Supabase n'expose pas de bannissement permanent
+const BAN_FOREVER = "876000h";
+const BAN_NONE = "none";
+
+const SuspendSchema = z.object({
+  member_id: z.uuid("Identifiant de membre invalide"),
+  action: z.enum(["suspend", "reactivate"]),
 });
 
 export async function POST(req: NextRequest) {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  try {
+    checkOrigin(req);
+    const ctx = await requireAuth(req);
+    requireRole(ctx, ["admin", "super_admin"]);
+    const { member_id, action } = validateInput(SuspendSchema, await req.json());
 
-  if (!user) {
-    return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-  }
+    const target = await loadManageableTarget(ctx, member_id, action);
 
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+    const shouldSuspend = action === "suspend";
 
-  if (!profile || profile.role !== "super_admin") {
-    return NextResponse.json({ error: "Accès réservé au super admin" }, { status: 403 });
-  }
-
-  const body = await req.json();
-  const parsed = schema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Données invalides" }, { status: 400 });
-  }
-
-  const { member_id, action } = parsed.data;
-
-  if (member_id === user.id) {
-    return NextResponse.json({ error: "Impossible d'agir sur votre propre compte" }, { status: 400 });
-  }
-
-  if (action === "delete") {
-    // Delete from auth (profile deleted via cascade or explicit delete)
-    const { error: authErr } = await admin.auth.admin.deleteUser(member_id);
-    if (authErr) {
-      return NextResponse.json({ error: authErr.message }, { status: 500 });
+    // Déjà actif : rien à écrire
+    if (!shouldSuspend && !target.is_suspended) {
+      return NextResponse.json({ ok: true });
     }
-    // Explicit profile delete in case cascade isn't set
-    await admin.from("profiles").delete().eq("id", member_id);
+
+    // Déjà suspendu côté profil : on rattrape les comptes suspendus AVANT
+    // l'introduction du ban Auth, qui n'ont jamais été bannis. L'opération est
+    // idempotente, le profil est déjà à jour — donc aucune écriture ni rollback.
+    if (shouldSuspend && target.is_suspended) {
+      const { error: banError } = await supabaseAdmin.auth.admin.updateUserById(
+        member_id,
+        { ban_duration: BAN_FOREVER },
+      );
+
+      if (banError) {
+        console.error("[equipe suspend] backfill ban:", banError);
+        throw new ApiError(500, "Erreur de mise à jour", "INTERNAL");
+      }
+
+      revalidatePath("/admin/equipe");
+      return NextResponse.json({ ok: true });
+    }
+
+    // L'accès se coupe côté auth d'abord (le profil seul ne bloque pas la session)
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
+      member_id,
+      { ban_duration: shouldSuspend ? BAN_FOREVER : BAN_NONE },
+    );
+
+    if (authError) {
+      console.error("[equipe suspend] updateUserById:", authError);
+      throw new ApiError(500, "Erreur de mise à jour", "INTERNAL");
+    }
+
+    const { error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .update({ is_suspended: shouldSuspend })
+      .eq("id", member_id);
+
+    if (profileError) {
+      console.error("[equipe suspend] update profile:", profileError);
+      // Rollback best effort : sinon auth et profil divergent
+      const { error: rollbackError } =
+        await supabaseAdmin.auth.admin.updateUserById(member_id, {
+          ban_duration: shouldSuspend ? BAN_NONE : BAN_FOREVER,
+        });
+      if (rollbackError) {
+        console.error("[equipe suspend] rollback ban:", rollbackError);
+      }
+      throw new ApiError(500, "Erreur de mise à jour", "INTERNAL");
+    }
+
     revalidatePath("/admin/equipe");
     return NextResponse.json({ ok: true });
+  } catch (e) {
+    return handleApiError(e);
   }
-
-  const { error } = await admin
-    .from("profiles")
-    .update({ is_suspended: action === "suspend" })
-    .eq("id", member_id);
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  revalidatePath("/admin/equipe");
-  return NextResponse.json({ ok: true });
 }

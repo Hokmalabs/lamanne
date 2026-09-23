@@ -1,70 +1,148 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { createClient } from "@supabase/supabase-js";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { generateStaffPassword } from "@/lib/staff-password";
+import {
+  requireAuth,
+  requireRole,
+  validateInput,
+  checkOrigin,
+  handleApiError,
+  ApiError,
+} from "@/lib/api-security";
 
-const admin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = "force-dynamic";
 
-const schema = z.object({
-  full_name: z.string().min(2),
-  phone: z.string().min(8),
-  email: z.string().email().optional().or(z.literal("")),
+/** Espaces retirés, préfixe international "00" ramené à "+" */
+function normalizePhone(value: string): string {
+  return value.replace(/\s/g, "").replace(/^00/, "+");
+}
+
+const CreateSchema = z.object({
+  full_name: z
+    .string()
+    .trim()
+    .min(2, "Le nom doit contenir au moins 2 caractères")
+    .max(100, "Nom trop long (100 caractères maximum)"),
+  phone: z
+    .string()
+    .transform(normalizePhone)
+    .refine(
+      (phone) => /^\+\d{10,15}$/.test(phone),
+      "Numéro invalide (format attendu : +225XXXXXXXXXX)",
+    ),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Email invalide")
+    .optional()
+    .or(z.literal("")),
   role: z.enum(["admin", "commercial"]),
-  pin: z.string().length(4).regex(/^\d{4}$/),
 });
 
 export async function POST(req: NextRequest) {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  try {
+    checkOrigin(req);
+    const ctx = await requireAuth(req);
+    requireRole(ctx, ["admin", "super_admin"]);
+    const { full_name, phone, email, role } = validateInput(
+      CreateSchema,
+      await req.json(),
+    );
 
-  if (!user) {
-    return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-  }
+    if (role === "admin" && ctx.profile.role !== "super_admin") {
+      throw new ApiError(
+        403,
+        "Seul le super admin peut créer un administrateur",
+        "FORBIDDEN",
+      );
+    }
 
-  const { data: callerProfile } = await admin
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+    // Email de connexion : celui fourni, sinon un email technique dérivé du numéro
+    const digits = phone.replace(/\D/g, "");
+    const resolvedEmail = email ? email : `phone_${digits}@lamanne.app`;
 
-  if (!callerProfile || !["admin", "super_admin"].includes(callerProfile.role)) {
-    return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
-  }
+    const { data: existing, error: existingError } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("phone", phone)
+      .maybeSingle();
 
-  const body = await req.json();
-  const parsed = schema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Données invalides", details: parsed.error.flatten() }, { status: 400 });
-  }
+    if (existingError) {
+      console.error("[equipe POST] phone lookup:", existingError);
+      throw new ApiError(500, "Erreur de vérification", "INTERNAL");
+    }
 
-  const { full_name, phone, email, role, pin } = parsed.data;
-  const cleanPhone = phone.replace(/\s/g, "").replace(/^00/, "+");
-  const digits = cleanPhone.replace(/\D/g, "");
-  const resolvedEmail = email || `phone_${digits}@lamanne.app`;
+    if (existing) {
+      throw new ApiError(409, "Ce numéro est déjà utilisé", "INVALID_INPUT");
+    }
 
-  const { data: newUser, error: createError } = await admin.auth.admin.createUser({
-    email: resolvedEmail,
-    password: pin + "LM",
-    email_confirm: true,
-    user_metadata: { full_name, phone: cleanPhone },
-  });
+    // Généré côté serveur, renvoyé une seule fois, jamais stocké
+    const password = generateStaffPassword();
 
-  if (createError) {
-    return NextResponse.json({ error: createError.message }, { status: 400 });
-  }
+    const { data: created, error: createError } =
+      await supabaseAdmin.auth.admin.createUser({
+        email: resolvedEmail,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name, phone },
+      });
 
-  if (newUser?.user) {
-    await admin.from("profiles").upsert({
-      id: newUser.user.id,
+    if (createError) {
+      console.error("[equipe POST] createUser:", createError);
+      const { message: createMessage, status: createStatus } = createError;
+      const alreadyExists =
+        createStatus === 422 || /already|registered/i.test(createMessage ?? "");
+      if (alreadyExists) {
+        throw new ApiError(
+          409,
+          "Ce numéro ou cet email est déjà utilisé",
+          "INVALID_INPUT",
+        );
+      }
+      throw new ApiError(500, "Création impossible", "INTERNAL");
+    }
+
+    const memberId = created?.user?.id;
+    if (!memberId) {
+      console.error("[equipe POST] createUser: aucun utilisateur renvoyé");
+      throw new ApiError(500, "Création impossible", "INTERNAL");
+    }
+
+    // upsert : un trigger a pu créer le profil à l'insertion dans auth.users
+    const { error: profileError } = await supabaseAdmin.from("profiles").upsert({
+      id: memberId,
       full_name,
-      phone: cleanPhone,
+      phone,
       role,
-      created_by: user.id,
+      created_by: ctx.user.id,
     });
-  }
 
-  return NextResponse.json({ ok: true });
+    if (profileError) {
+      console.error("[equipe POST] upsert profile:", profileError);
+      // Rollback best effort : sans profil, le compte auth est inutilisable
+      const { error: rollbackError } =
+        await supabaseAdmin.auth.admin.deleteUser(memberId);
+      if (rollbackError) {
+        console.error("[equipe POST] rollback deleteUser:", rollbackError);
+      }
+      throw new ApiError(
+        500,
+        "Création impossible, aucun compte n'a été créé",
+        "INTERNAL",
+      );
+    }
+
+    revalidatePath("/admin/equipe");
+
+    // Le mot de passe transite ici et nulle part ailleurs : pas de cache
+    return NextResponse.json(
+      { ok: true, member_id: memberId, password },
+      { status: 201, headers: { "Cache-Control": "no-store" } },
+    );
+  } catch (e) {
+    return handleApiError(e);
+  }
 }
