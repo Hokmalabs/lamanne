@@ -1,101 +1,124 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import {
+  requireAuth,
+  requireRole,
+  validateInput,
+  checkOrigin,
+  handleApiError,
+  ApiError,
+} from "@/lib/api-security";
 
-const admin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = "force-dynamic";
+
+// Frais de dossier retenus sur les versements déjà encaissés (10%)
+const REFUND_RATE = 0.9;
 
 const schema = z.object({
-  cotisation_id: z.string().uuid(),
-  client_id: z.string().uuid(),
-  motif: z.string().min(1).max(500),
+  cotisation_id: z.string().uuid("Cotisation invalide"),
+  motif: z
+    .string()
+    .min(1, "Le motif est obligatoire")
+    .max(500, "Motif trop long (500 caractères maximum)"),
 });
 
 export async function POST(req: NextRequest) {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  try {
+    checkOrigin(req);
+    const ctx = await requireAuth(req);
+    requireRole(ctx, ["commercial", "admin", "super_admin"]);
+    const { cotisation_id, motif } = validateInput(schema, await req.json());
 
-  if (!user) {
-    return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-  }
+    // 1. La cotisation doit exister. Le propriétaire se déduit d'elle :
+    // aucun identifiant de client n'est accepté depuis le navigateur.
+    const { data: cotisation, error: readError } = await supabaseAdmin
+      .from("cotisations")
+      .select("id, user_id, status, amount_paid, refund_status")
+      .eq("id", cotisation_id)
+      .maybeSingle();
 
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile || !["commercial", "admin", "super_admin"].includes(profile.role)) {
-    return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
-  }
-
-  const body = await req.json();
-  const parsed = schema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Données invalides" }, { status: 400 });
-  }
-
-  const { cotisation_id, client_id, motif } = parsed.data;
-
-  // Verify cotisation exists and belongs to this commercial's client
-  const { data: cotisation } = await admin
-    .from("cotisations")
-    .select("id, user_id, amount_paid, status")
-    .eq("id", cotisation_id)
-    .single();
-
-  if (!cotisation) {
-    return NextResponse.json({ error: "Cotisation introuvable" }, { status: 404 });
-  }
-
-  // Verify the client is assigned to this commercial
-  if (profile.role === "commercial") {
-    const { data: clientProfile } = await admin
-      .from("profiles")
-      .select("assigned_commercial")
-      .eq("id", client_id)
-      .single();
-
-    if (!clientProfile || clientProfile.assigned_commercial !== user.id) {
-      return NextResponse.json({ error: "Ce client ne vous est pas assigné" }, { status: 403 });
+    if (readError) {
+      console.error("[CommercialRemboursement] read cotisation:", readError);
+      throw new ApiError(500, "Erreur de lecture", "INTERNAL");
     }
-  }
 
-  if (cotisation.amount_paid <= 0) {
-    return NextResponse.json({ error: "Aucun montant à rembourser" }, { status: 400 });
-  }
+    if (!cotisation) {
+      throw new ApiError(404, "Cotisation introuvable", "NOT_FOUND");
+    }
 
-  // Create refund request (stored as a special payment with negative amount or a dedicated table)
-  // We'll use a refund_requests table if it exists, or mark the cotisation
-  const { error: refundError } = await admin
-    .from("refund_requests")
-    .insert({
-      cotisation_id,
-      client_id,
-      commercial_id: user.id,
-      amount: cotisation.amount_paid,
-      motif,
-      status: "pending",
+    // 2. Un commercial ne peut agir que sur les clients qui lui sont assignés
+    if (ctx.profile.role === "commercial") {
+      const { data: owner, error: ownerError } = await supabaseAdmin
+        .from("profiles")
+        .select("id, assigned_commercial")
+        .eq("id", cotisation.user_id)
+        .maybeSingle();
+
+      if (ownerError) {
+        console.error("[CommercialRemboursement] read profile:", ownerError);
+        throw new ApiError(500, "Erreur de lecture", "INTERNAL");
+      }
+
+      if (!owner || owner.assigned_commercial !== ctx.user.id) {
+        throw new ApiError(403, "Ce client ne vous est pas assigné", "FORBIDDEN");
+      }
+    }
+
+    // 3. Seule une cotisation active peut faire l'objet d'une demande
+    if (cotisation.status !== "active") {
+      throw new ApiError(
+        409,
+        "Seule une cotisation active peut faire l'objet d'une demande de remboursement",
+        "INVALID_INPUT",
+      );
+    }
+
+    // 4. Garde anti-doublon tolérante aux valeurs NULL / 'none'
+    if (cotisation.refund_status && cotisation.refund_status !== "none") {
+      throw new ApiError(
+        409,
+        "Une demande de remboursement est déjà en cours",
+        "INVALID_INPUT",
+      );
+    }
+
+    // 5. Rien à rembourser si aucun versement n'a été encaissé
+    if (cotisation.amount_paid <= 0) {
+      throw new ApiError(400, "Aucun montant à rembourser", "INVALID_INPUT");
+    }
+
+    // Montant calculé côté serveur uniquement (jamais fourni par le client)
+    const refundAmount = Math.floor(cotisation.amount_paid * REFUND_RATE);
+
+    // La cotisation reste 'active' : l'annulation effective se fait à
+    // l'approbation admin.
+    const { error: updateError } = await supabaseAdmin
+      .from("cotisations")
+      .update({
+        refund_status: "requested",
+        refund_amount: refundAmount,
+        refund_requested_at: new Date().toISOString(),
+        cancellation_reason: motif,
+      })
+      .eq("id", cotisation_id);
+
+    if (updateError) {
+      console.error("[CommercialRemboursement] update:", updateError);
+      throw new ApiError(500, "Erreur d'enregistrement", "INTERNAL");
+    }
+
+    // Notification au propriétaire de la cotisation (échec non bloquant),
+    // après l'écriture réussie uniquement.
+    await supabaseAdmin.from("notifications").insert({
+      user_id: cotisation.user_id,
+      title: "Demande de remboursement",
+      message: `Une demande de remboursement a été initiée pour votre cotisation. Montant prévu : ${refundAmount.toLocaleString("fr-FR")} FCFA. Un administrateur la traitera prochainement.`,
+      type: "info",
     });
 
-  if (refundError) {
-    // Fallback: update cotisation status to "refund_requested" if table doesn't exist
-    await admin
-      .from("cotisations")
-      .update({ status: "refund_requested" })
-      .eq("id", cotisation_id);
+    return NextResponse.json({ ok: true, refund_amount: refundAmount });
+  } catch (e) {
+    return handleApiError(e);
   }
-
-  // Notify client
-  await admin.from("notifications").insert({
-    user_id: client_id,
-    title: "Demande de remboursement",
-    message: `Une demande de remboursement a été initiée pour votre cotisation. Montant : ${cotisation.amount_paid.toLocaleString("fr-FR")} FCFA.`,
-    type: "info",
-  });
-
-  return NextResponse.json({ ok: true });
 }

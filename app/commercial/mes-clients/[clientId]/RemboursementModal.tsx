@@ -1,20 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RotateCcw, X, CheckCircle } from "lucide-react";
 import { formatCFA } from "@/lib/utils";
+import { apiPost, ApiClientError } from "@/lib/api-client";
 
 export default function RemboursementModal({
   cotisationId,
-  clientId,
   productName,
   amountPaid,
 }: {
   cotisationId: string;
-  clientId: string;
   productName: string;
   amountPaid: number;
 }) {
@@ -24,6 +23,14 @@ export default function RemboursementModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [refundAmount, setRefundAmount] = useState<number | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,26 +38,28 @@ export default function RemboursementModal({
     if (!motif.trim()) { setError("Veuillez indiquer le motif."); return; }
 
     setLoading(true);
-    const res = await fetch("/api/commercial/remboursement", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cotisation_id: cotisationId, client_id: clientId, motif: motif.trim() }),
-    });
-    setLoading(false);
+    try {
+      const result = await apiPost<{ ok: true; refund_amount: number }>(
+        "/api/commercial/remboursement",
+        { cotisation_id: cotisationId, motif: motif.trim() },
+      );
 
-    if (!res.ok) {
-      const d = await res.json();
-      setError(d.error ?? "Erreur.");
-      return;
+      // Montant affiché = celui réellement enregistré par le serveur
+      setRefundAmount(result.refund_amount);
+      setSuccess(true);
+      closeTimer.current = setTimeout(() => {
+        setOpen(false);
+        setSuccess(false);
+        setRefundAmount(null);
+        setMotif("");
+        router.refresh();
+      }, 1600);
+    } catch (e) {
+      // L'erreur reste affichée : le modal ne se ferme pas
+      setError(e instanceof ApiClientError ? e.message : "Erreur réseau");
+    } finally {
+      setLoading(false);
     }
-
-    setSuccess(true);
-    setTimeout(() => {
-      setOpen(false);
-      setSuccess(false);
-      setMotif("");
-      router.refresh();
-    }, 1600);
   };
 
   return (
@@ -58,7 +67,7 @@ export default function RemboursementModal({
       <Button
         size="sm"
         variant="outline"
-        className="flex-1 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+        className="flex-1 text-lamanne-danger border-lamanne-danger/30 hover:bg-lamanne-danger/10 hover:text-lamanne-danger"
         onClick={() => setOpen(true)}
         disabled={amountPaid <= 0}
       >
@@ -72,11 +81,15 @@ export default function RemboursementModal({
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 z-10 max-h-[calc(100vh-3rem)] overflow-y-auto my-auto">
             {success ? (
               <div className="text-center py-4">
-                <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <CheckCircle className="h-7 w-7 text-green-600" />
+                <div className="w-14 h-14 bg-lamanne-success/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <CheckCircle className="h-7 w-7 text-lamanne-success" />
                 </div>
-                <p className="font-bold text-gray-900">Demande enregistrée !</p>
-                <p className="text-sm text-gray-500 mt-1">Remboursement de {formatCFA(amountPaid)} en attente</p>
+                <p className="font-bold text-gray-900">Demande enregistrée.</p>
+                {refundAmount !== null && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Montant prévu : {formatCFA(refundAmount)}
+                  </p>
+                )}
               </div>
             ) : (
               <>
@@ -87,15 +100,18 @@ export default function RemboursementModal({
                   </button>
                 </div>
 
-                <div className="mb-4 bg-red-50 rounded-xl p-3 text-sm">
+                <div className="mb-4 bg-lamanne-danger/5 rounded-xl p-3 text-sm">
                   <p className="font-semibold text-gray-900">{productName}</p>
                   <p className="text-gray-600 mt-0.5">
-                    Montant versé : <span className="font-bold text-red-600">{formatCFA(amountPaid)}</span>
+                    Montant versé : <span className="font-bold text-lamanne-danger">{formatCFA(amountPaid)}</span>
                   </p>
                 </div>
 
                 {error && (
-                  <div className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded-xl">
+                  <div
+                    role="alert"
+                    className="mb-4 rounded-xl bg-lamanne-danger/10 text-lamanne-danger text-sm px-3 py-2"
+                  >
                     {error}
                   </div>
                 )}
@@ -119,7 +135,8 @@ export default function RemboursementModal({
                     </Button>
                     <Button
                       type="submit"
-                      className="flex-1 bg-red-600 hover:bg-red-700"
+                      variant="destructive"
+                      className="flex-1"
                       disabled={loading || !motif.trim()}
                     >
                       {loading
