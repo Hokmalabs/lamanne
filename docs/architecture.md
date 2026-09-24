@@ -1,6 +1,6 @@
 # LAMANNE — Architecture technique
 
-*Mise à jour : 22 septembre 2026*
+*Mise à jour : 23 septembre 2026*
 
 ## Stack
 
@@ -47,6 +47,32 @@ Tokens `lamanne.*` définis dans `tailwind.config.ts` :
 4. **RLS Postgres** — dernière ligne de défense côté DB
 
 Toutes les écritures sensibles passent par le service_role (côté serveur uniquement), qui bypass les RLS. Les RLS servent à empêcher les fuites via anon key en cas d'accès direct depuis le navigateur.
+
+## Authentification
+
+**Trois modes** :
+
+- **Équipe** (admin, commercial) : mot de passe fort via `signInWithPassword`, avec l'email technique `phone_225…@lamanne.app` (onglet Téléphone) ou un email réel (onglet Email).
+- **super_admin** : par email via `/hokma-admin` (alias de `/admin-login`).
+- **Clients** : numéro + PIN via `POST /api/auth/phone-login`.
+
+**PIN clients** :
+
+- Table `public.auth_pins` : `user_id`, `pin_hash` (`scrypt$N$r$p$sel$hash`), `must_change`, `temp_expires_at`, `failed_attempts`, `locked_until`. RLS activée **sans policy**, grants `service_role` seulement.
+- RPC `pin_attempt_begin` (réserve l'essai **avant** la vérification) et `pin_attempt_success`, `execute` révoqué pour `public` / `anon` / `authenticated`.
+- Session client ouverte **côté serveur** : `lib/phone-session.ts` (`generateLink` magiclink + `verifyOtp` `token_hash`) — uniquement depuis une route API.
+
+**Modules** :
+
+- `lib/phone.ts` — normalisation des numéros et email technique.
+- `lib/pin-rules.ts` — règles de format et de robustesse du PIN (module pur, utilisable dans le navigateur).
+- `lib/pin.ts` — hachage et vérification (serveur uniquement).
+- `lib/client-accounts.ts` — **SEUL** point de création d'un compte client.
+- `lib/staff-password.ts` — mot de passe de l'équipe.
+- `lib/equipe-guards.ts` — gardes des routes équipe.
+- `components/SecretRevealDialog.tsx` — pour tout secret affiché une seule fois.
+
+**Inscription publique Supabase désactivée** : toute création de compte passe par `auth.admin.createUser` côté serveur. Le trigger `handle_new_user` crée toujours le profil avec `role = 'user'`.
 
 ## Helpers centraux
 
@@ -250,7 +276,6 @@ Voir `next.config.js` :
 - **Pas d'observabilité** : Sentry, Vercel Spend alerts, Uptime Robot à installer avant lancement réel.
 - **Race condition amount_paid** non patchée (besoin RPC, différée volume faible).
 - **Colonne received_by manquante** sur payments (commercial inféré via `cotisations.created_by`).
-- **Routes `equipe`** à reprendre (détail dans `current.md`).
 - **Next 14.2.5 vulnérable** : montée de version à planifier.
 - **`@typescript-eslint` incompatible avec TS 5.9.3** (avertissement au lint).
 - **`next-pwa` non maintenu** : remplacement à étudier.

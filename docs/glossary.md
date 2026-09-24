@@ -37,6 +37,14 @@ Demande d'annulation d'une cotisation en cours + restitution des sommes déjà v
 
 Nombre à 6 chiffres généré par `crypto.randomInt(100000, 1000000)` (CSPRNG). Créé automatiquement quand une cotisation atteint 100%. Le client le voit dans ses notifications. Le commercial ou l'admin le vérifie au moment de la remise physique de l'article.
 
+## PIN client
+
+Code à 6 chiffres choisi par le client, qui lui sert à se connecter avec son numéro de téléphone. Il n'est jamais stocké en clair.
+
+## PIN temporaire
+
+Code à 6 chiffres généré par le serveur quand un agent ou un admin crée le compte d'un client, ou quand un admin réinitialise son PIN. Il est affiché une seule fois, valable 7 jours, et le client doit le remplacer par son propre PIN à sa première connexion.
+
 ## Rôles
 
 - **super_admin** — le développeur (Joel/Hokma Labs), un seul, accès secret
