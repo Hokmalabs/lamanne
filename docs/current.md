@@ -1,16 +1,59 @@
 # LAMANNE — État courant
 
-*Dernière mise à jour : 23 septembre 2026*
+*Dernière mise à jour : 23 septembre 2026 (fin de session)*
 
 ## Vue d'ensemble
 
 Projet à ~86%. Supabase en plan Pro, disponible.
 
-- Sécurité : ~80% (RÉVISÉ À LA BAISSE — voir « Failles ouvertes »)
+- Sécurité : ~90 %
 - Fonctionnel métier : ~93% — chaîne remboursement toujours incomplète
 - UI/design : ~92% — reste versements, produits testés mais pas validés, admin-login
 - Intégration paiement : 0% — GeniusPay en attente (domaine à trancher d'abord)
 - Observabilité : 0% — Tests / prod-readiness : ~15%
+
+## Fait le 23 septembre (suite) — fix/equipe-routes MERGÉ (PR #1)
+- Routes équipe au pattern standard ; garde centrale `lib/equipe-guards.ts` (admin → commerciaux
+  seulement ; tout ce qui touche un admin → super_admin ; jamais soi-même, un super_admin ou un client).
+- Mot de passe équipe XXXX-XXXX-XXXX généré serveur (`lib/staff-password.ts`), affiché UNE fois,
+  régénérable ; enregistré par Chrome sur le téléphone de l'agent (décision).
+- Suspension = ban Supabase Auth + `is_suspended` (rollback si l'un échoue).
+- Suppression : super_admin uniquement, bloquée (409) dès qu'il existe un historique.
+- `/login` : `redirectTo` sécurisé (redirection ouverte corrigée).
+- `lib/phone.ts` : normalisation unique des numéros (10 chiffres ou +225).
+
+## Fait le 23 septembre (suite 2) — feat/auth-pin MERGÉ
+- Clients : PIN 6 chiffres haché scrypt par NOTRE serveur (table `auth_pins`, sans policy) ;
+  mot de passe Supabase aléatoire jamais utilisé → l'endpoint Supabase direct ne sert plus à rien.
+- `POST /api/auth/phone-login` : essai réservé AVANT vérification (RPC `pin_attempt_begin`, verrou
+  ligne), blocage 5 → 15 min, 10 → 1 h, 15+ → 24 h ; hash factice pour les numéros inexistants.
+- PIN faibles refusés (répétitions, suites, ababab, abcabc, fin du numéro).
+- Création client UNIQUE : `lib/client-accounts.ts` (inscription, agent, admin). Agent/admin →
+  PIN temporaire affiché une fois, valable 7 jours, changement obligatoire à la 1re connexion.
+  (Corrige le bug : les clients créés par un agent ou un admin ne pouvaient pas se connecter.)
+- Reset PIN par admin (`/admin/clients`). Changement de PIN dans le profil client.
+- Inscription publique Supabase DÉSACTIVÉE ; `/register` = téléphone uniquement ; `/login` ouvre
+  sur l'onglet Téléphone après une inscription (`?registered=1`), sur l'onglet Email sinon ;
+  lien « mot de passe oublié » (page inexistante) retiré.
+- Profil client réparé (colonnes parrainage inexistantes → page vide ; écriture navigateur
+  silencieusement refusée par RLS). Numéro non modifiable par le client.
+- Parrainage : UI retirée, `supabase/referral.sql` NON appliqué → backlog.
+- Index unique `profiles(phone) where phone <> ''`. Migration versionnée : `supabase/auth-pins.sql`.
+
+## Risques / dettes ouverts (nouveaux)
+- Pare-feu Vercel : limiter par IP `/api/auth/phone-login` et `/api/auth/register-phone` AVANT
+  lancement (scrypt coûte du CPU à chaque essai ; squat de numéro à l'inscription).
+- Les sessions ouvertes survivent à un reset de PIN ou de mot de passe (levier : suspension).
+- Middleware : `getUser()` sur quasiment chaque requête (FinOps) → lot outillage.
+- 11 anciens comptes sans "225" (dont l'ancien admin) + anciens clients sans PIN : à supprimer
+  au nettoyage de lancement (garder super_admin, produits, catégories ; script SQL dans l'ordre
+  des FK : payments → cotisations → notifications → profiles → auth.users).
+- Doublons à factoriser : `lockedMessage` (2 routes), `PasswordRevealDialog` vs `SecretRevealDialog`.
+- Prop inutilisée `commercialId` dans `AddClientModal`.
+
+## Règles de méthode ajoutées
+- `npm run build` dans CHAQUE chaîne (un page.tsx n'exporte que default + config de route :
+  tsc ne le voit pas, le build Vercel si). `git restore public/sw.js` après chaque build.
 
 ## Fait à la session du 23 septembre
 
@@ -63,24 +106,6 @@ Le modal affichait 100% des versements au lieu des 90% réellement enregistrés 
   Réflexe : rechargement forcé ou navigation privée avant de conclure.
 - **Build cassé sur main** : un merge est parti malgré un `tsc` en échec (blocs de commandes
   séparés). Désormais : une seule chaîne en `&&` du contrôle jusqu'au push.
-
-## Failles ouvertes — PRIORITÉ ABSOLUE (routes `equipe`)
-L'audit du 22 septembre les avait déclarées propres : c'était FAUX, elles ne suivent pas le
-pattern standard et n'avaient pas été relues.
-- **Mot de passe = PIN 4 chiffres + "LM"** (règle publique, email devinable
-  `phone_<chiffres>@lamanne.app`) → 10 000 combinaisons, sans limitation de débit. Touche
-  des comptes admin. LA PLUS GRAVE.
-- **Un admin peut créer et nommer des admins** (contredit business.md).
-- **`deleteUser` sans garde sur le rôle cible** : un client pouvait être supprimé (atténué
-  depuis par les FK RESTRICT, mais la garde applicative manque).
-- Deux routes font la même suppression ; pas de `checkOrigin` ; id non validé ; `createClient`
-  locaux ; messages Postgres renvoyés au navigateur.
-
-DÉCISIONS PRISES : mot de passe aléatoire fort généré serveur, affiché UNE SEULE FOIS à la
-création, avec action « régénérer » réservée au super_admin ; création et nomination d'admins
-réservées au super_admin. CONSÉQUENCES : `/login` (onglet téléphone, `maxLength={4}` et
-`pin + "LM"`) doit accepter un mot de passe libre, sinon les commerciaux ne peuvent plus se
-connecter ; 9 comptes existants (8 commerciaux + 1 admin) à régénérer et redistribuer.
 
 ## Dettes techniques
 

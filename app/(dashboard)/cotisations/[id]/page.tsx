@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import ProgressRing from "@/components/ProgressRing";
 import {
   ChevronLeft,
-  CreditCard,
+  Info,
   XCircle,
   CheckCircle,
   QrCode,
@@ -35,81 +35,6 @@ function addMonths(dateStr: string, months: number): Date {
 
 function daysUntil(date: Date): number {
   return Math.floor((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-}
-
-// ─── Modal versement ─────────────────────────────────────────────
-function VersementModal({
-  cotisation, onClose, onSuccess,
-}: { cotisation: CotisationFull; onClose: () => void; onSuccess: () => void }) {
-  const [amount, setAmount] = useState<number | "">(Math.min(1000, cotisation.amount_remaining));
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const amountNum = typeof amount === "number" ? amount : 0;
-  const deadline = addMonths(cotisation.created_at, cotisation.product.max_tranches);
-
-  const handleConfirm = async () => {
-    if (amountNum < 1000) { setError("Montant minimum : 1 000 FCFA."); return; }
-    if (amountNum > cotisation.amount_remaining) { setError("Montant supérieur au restant dû."); return; }
-    setSaving(true);
-    setError(null);
-
-    try {
-      const res = await fetch("/api/client/versement", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cotisation_id: cotisation.id,
-          amount: amountNum,
-          idempotency_key: `${cotisation.id}-${Date.now()}-${crypto.randomUUID()}`,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Erreur lors du paiement. Réessayez.");
-        setSaving(false);
-        return;
-      }
-      onSuccess();
-    } catch {
-      setError("Erreur réseau. Réessayez.");
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-5">
-        <h2 className="text-xl font-black text-gray-900">Faire un versement</h2>
-        <div className="bg-lamanne-light rounded-xl p-4 space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-600">Montant restant</span>
-            <span className="font-sora font-black text-lamanne-primary">{formatCFA(cotisation.amount_remaining)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Date limite</span>
-            <span className="font-semibold text-gray-800">{formatDate(deadline.toISOString())}</span>
-          </div>
-        </div>
-        {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">{error}</div>}
-        <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-gray-700 block">Montant à verser (FCFA)</label>
-          <input type="number" min={1000} max={cotisation.amount_remaining} step={500} value={amount}
-            onChange={(e) => { setError(null); setAmount(e.target.value === "" ? "" : Number(e.target.value)); }}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-lg font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-lamanne-primary"
-            style={{ fontSize: "16px" }}
-          />
-          <p className="text-xs text-gray-400">Min 1 000 FCFA — Max {formatCFA(cotisation.amount_remaining)}</p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="outline" className="flex-1" onClick={onClose} disabled={saving}>Annuler</Button>
-          <Button className="flex-1" onClick={handleConfirm} disabled={saving || amountNum < 1000}>
-            {saving ? <span className="flex items-center gap-2"><span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Paiement...</span> : "Confirmer le versement"}
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 // ─── Modal annulation ────────────────────────────────────────────
@@ -187,7 +112,6 @@ export default function CotisationDetailPage() {
   const router = useRouter();
   const [cotisation, setCotisation] = useState<CotisationFull | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showPay, setShowPay] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -223,7 +147,9 @@ export default function CotisationDetailPage() {
     );
   }
 
-  const deadline = addMonths(cotisation.created_at, cotisation.product.max_tranches);
+  const deadline = cotisation.deadline
+    ? new Date(cotisation.deadline)
+    : addMonths(cotisation.created_at, cotisation.product.max_tranches);
   const days = daysUntil(deadline);
   const progress = calculateProgress(cotisation.amount_paid, cotisation.total_price);
   const sortedPayments = [...(cotisation.payments ?? [])].sort(
@@ -237,13 +163,19 @@ export default function CotisationDetailPage() {
           <ChevronLeft className="h-4 w-4" />
           Mes cotisations
         </Link>
-        {cotisation.status === "active" && (
-          <Button onClick={() => setShowPay(true)} className="w-full sm:w-auto">
-            <CreditCard className="h-4 w-4 mr-1.5" />
-            Faire un versement
-          </Button>
-        )}
       </div>
+
+      {cotisation.status === "active" && (
+        <div className="bg-lamanne-soft text-gray-700 rounded-2xl p-4 flex items-start gap-3">
+          <Info className="h-5 w-5 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold">Effectuer un versement</p>
+            <p className="text-sm mt-0.5">
+              Remettez votre versement à votre agent LAMANNE. Le paiement en ligne sera bientôt disponible.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Infos produit + progression */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5">
@@ -349,14 +281,6 @@ export default function CotisationDetailPage() {
         >
           Annuler cette cotisation
         </button>
-      )}
-
-      {showPay && (
-        <VersementModal
-          cotisation={cotisation}
-          onClose={() => setShowPay(false)}
-          onSuccess={() => { setShowPay(false); fetchData(); }}
-        />
       )}
 
       {showCancel && (
