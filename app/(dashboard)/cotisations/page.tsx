@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Plus,
   ShoppingBag,
-  CreditCard,
+  Info,
   XCircle,
   QrCode,
   CheckCircle,
@@ -47,117 +47,6 @@ function Modal({ open, onClose, children }: { open: boolean; onClose: () => void
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">{children}</div>
-    </div>
-  );
-}
-
-// ─── Modal versement libre ───────────────────────────────────────
-function VersementModal({
-  cotisation,
-  onClose,
-  onSuccess,
-}: {
-  cotisation: CotisationWithProduct;
-  onClose: () => void;
-  onSuccess: () => void;
-}) {
-  const [amount, setAmount] = useState<number | "">(Math.min(1000, cotisation.amount_remaining));
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const deadline = addMonths(cotisation.created_at, cotisation.product.max_tranches);
-  const amountNum = typeof amount === "number" ? amount : 0;
-
-  const handleConfirm = async () => {
-    if (amountNum < 1000) { setError("Montant minimum : 1 000 FCFA."); return; }
-    if (amountNum > cotisation.amount_remaining) { setError("Montant supérieur au restant dû."); return; }
-
-    setSaving(true);
-    setError(null);
-
-    try {
-      const res = await fetch("/api/client/versement", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cotisation_id: cotisation.id,
-          amount: amountNum,
-          idempotency_key: `${cotisation.id}-${Date.now()}-${crypto.randomUUID()}`,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Erreur lors du paiement. Réessayez.");
-        setSaving(false);
-        return;
-      }
-      onSuccess();
-    } catch {
-      setError("Erreur réseau. Réessayez.");
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="p-6 space-y-5">
-      <h2 className="text-xl font-black text-gray-900">Faire un versement</h2>
-      <p className="text-sm text-gray-500">{cotisation.product.name}</p>
-
-      <div className="bg-lamanne-light rounded-xl p-4 space-y-2 text-sm">
-        <div className="flex justify-between">
-          <span className="text-gray-600">Montant restant</span>
-          <span className="font-sora font-black text-lamanne-primary">{formatCFA(cotisation.amount_remaining)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-600">Date limite</span>
-          <span className="font-semibold text-gray-800">{formatDate(deadline.toISOString())}</span>
-        </div>
-      </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
-          {error}
-        </div>
-      )}
-
-      <div className="space-y-1.5">
-        <label className="text-sm font-semibold text-gray-700 block">
-          Montant à verser (FCFA)
-        </label>
-        <input
-          type="number"
-          min={1000}
-          max={cotisation.amount_remaining}
-          step={500}
-          value={amount}
-          onChange={(e) => { setError(null); setAmount(e.target.value === "" ? "" : Number(e.target.value)); }}
-          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-lg font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-lamanne-primary"
-          style={{ fontSize: "16px" }}
-        />
-        <p className="text-xs text-gray-400">
-          Min 1 000 FCFA — Max {formatCFA(cotisation.amount_remaining)}
-        </p>
-      </div>
-
-      {amountNum >= cotisation.amount_remaining && amountNum > 0 && (
-        <div className="bg-green-50 border border-green-200 text-green-700 text-xs px-3 py-2 rounded-xl text-center font-semibold">
-          Dernier versement — votre article sera prêt à retirer !
-        </div>
-      )}
-
-      <div className="flex gap-3">
-        <Button variant="outline" className="flex-1" onClick={onClose} disabled={saving}>
-          Annuler
-        </Button>
-        <Button className="flex-1" onClick={handleConfirm} disabled={saving || amountNum < 1000}>
-          {saving ? (
-            <span className="flex items-center gap-2">
-              <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Paiement...
-            </span>
-          ) : "Confirmer le versement"}
-        </Button>
-      </div>
     </div>
   );
 }
@@ -240,10 +129,12 @@ function CancelModal({
 
 // ─── Carte cotisation ────────────────────────────────────────────
 function CotisationItem({
-  cotisation, onPay, onCancel,
-}: { cotisation: CotisationWithProduct; onPay: (c: CotisationWithProduct) => void; onCancel: (c: CotisationWithProduct) => void }) {
+  cotisation, onCancel,
+}: { cotisation: CotisationWithProduct; onCancel: (c: CotisationWithProduct) => void }) {
   const progress = calculateProgress(cotisation.amount_paid, cotisation.total_price);
-  const deadline = addMonths(cotisation.created_at, cotisation.product.max_tranches);
+  const deadline = cotisation.deadline
+    ? new Date(cotisation.deadline)
+    : addMonths(cotisation.created_at, cotisation.product.max_tranches);
   const days = daysUntil(deadline);
   const nbVersements = cotisation.payments?.length ?? 0;
   const lastPayment = cotisation.payments?.slice(-1)[0];
@@ -352,10 +243,17 @@ function CotisationItem({
         </p>
       )}
 
-      <Button className="w-full" size="sm" onClick={() => onPay(cotisation)}>
-        <CreditCard className="h-4 w-4 mr-2" />
-        Faire un versement
-      </Button>
+      {cotisation.status === "active" && (
+        <div className="bg-lamanne-soft text-gray-700 rounded-xl p-4 flex items-start gap-3">
+          <Info className="h-5 w-5 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold">Effectuer un versement</p>
+            <p className="text-xs mt-0.5">
+              Remettez votre versement à votre agent LAMANNE. Le paiement en ligne sera bientôt disponible.
+            </p>
+          </div>
+        </div>
+      )}
 
       <button
         onClick={() => onCancel(cotisation)}
@@ -372,7 +270,6 @@ function CotisationsContent() {
   const searchParams = useSearchParams();
   const [cotisations, setCotisations] = useState<CotisationWithProduct[]>([]);
   const [loading, setLoading] = useState(true);
-  const [payTarget, setPayTarget] = useState<CotisationWithProduct | null>(null);
   const [cancelTarget, setCancelTarget] = useState<CotisationWithProduct | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(
     searchParams.get("success") ? "Cotisation démarrée avec succès !" : null
@@ -453,7 +350,7 @@ function CotisationsContent() {
             Prêt à retirer ({completed.length})
           </h2>
           {completed.map((c) => (
-            <CotisationItem key={c.id} cotisation={c} onPay={setPayTarget} onCancel={setCancelTarget} />
+            <CotisationItem key={c.id} cotisation={c} onCancel={setCancelTarget} />
           ))}
         </div>
       )}
@@ -464,24 +361,10 @@ function CotisationsContent() {
             <h2 className="text-base font-bold text-gray-700">En cours ({active.length})</h2>
           )}
           {active.map((c) => (
-            <CotisationItem key={c.id} cotisation={c} onPay={setPayTarget} onCancel={setCancelTarget} />
+            <CotisationItem key={c.id} cotisation={c} onCancel={setCancelTarget} />
           ))}
         </div>
       )}
-
-      <Modal open={!!payTarget} onClose={() => setPayTarget(null)}>
-        {payTarget && (
-          <VersementModal
-            cotisation={payTarget}
-            onClose={() => setPayTarget(null)}
-            onSuccess={() => {
-              setPayTarget(null);
-              setSuccessMsg("Versement effectué avec succès !");
-              fetchCotisations();
-            }}
-          />
-        )}
-      </Modal>
 
       <Modal open={!!cancelTarget} onClose={() => setCancelTarget(null)}>
         {cancelTarget && (

@@ -10,7 +10,7 @@ import {
   ShoppingBag,
   ChevronLeft,
   Package,
-  CreditCard,
+  Check,
   AlertTriangle,
   Calendar,
   MessageCircle,
@@ -31,7 +31,8 @@ export default function ProductDetailPage() {
   const [existingCotisation, setExistingCotisation] = useState<Cotisation | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [firstPayment, setFirstPayment] = useState<number | "">(1000);
+  const [months, setMonths] = useState<number>(1);
+  const [confirming, setConfirming] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -43,6 +44,7 @@ export default function ProductDetailPage() {
 
       if (!prod) { setLoading(false); return; }
       setProduct(prod as Product);
+      setMonths((prod as Product).max_tranches);
 
       if (user) {
         const { data: cot } = await supabase
@@ -60,20 +62,10 @@ export default function ProductDetailPage() {
     fetchData();
   }, [id]);
 
-  const deadline = product ? addMonths(product.max_tranches) : null;
-  const firstPaymentNum = typeof firstPayment === "number" ? firstPayment : 0;
-  const remaining = product ? product.price - firstPaymentNum : 0;
+  const deadline = product ? addMonths(months) : null;
 
   const handleStartCotisation = async () => {
     if (!product) return;
-    if (firstPaymentNum < 1000) {
-      setErrorMsg("Le premier versement doit être d'au moins 1 000 FCFA.");
-      return;
-    }
-    if (firstPaymentNum > product.price) {
-      setErrorMsg("Le versement ne peut pas dépasser le prix total.");
-      return;
-    }
 
     setSaving(true);
     setErrorMsg(null);
@@ -84,7 +76,7 @@ export default function ProductDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           product_id: product.id,
-          first_payment: firstPaymentNum,
+          months,
         }),
       });
       const data = await res.json();
@@ -121,6 +113,14 @@ export default function ProductDetailPage() {
       </div>
     );
   }
+
+  const minMonths = product.min_tranches ?? 1;
+  const maxMonths = product.max_tranches;
+  const monthlyAmount = Math.ceil(product.price / months);
+  const monthOptions = Array.from(
+    { length: Math.max(0, maxMonths - minMonths + 1) },
+    (_, i) => minMonths + i,
+  );
 
   return (
     <div className="max-w-xl mx-auto space-y-5">
@@ -202,7 +202,9 @@ export default function ProductDetailPage() {
         <Calendar className="h-5 w-5 text-lamanne-primary flex-shrink-0 mt-0.5" />
         <div className="text-sm">
           <p className="font-semibold text-lamanne-primary">
-            Vous avez {product.max_tranches} mois pour compléter votre cotisation
+            {minMonths === maxMonths
+              ? `Durée : ${maxMonths} mois`
+              : `Durée au choix : de ${minMonths} à ${maxMonths} mois`}
           </p>
           {deadline && (
             <p className="text-lamanne-primary mt-0.5">
@@ -244,72 +246,123 @@ export default function ProductDetailPage() {
             </div>
           )}
 
-          {/* Premier versement */}
+          {/* Durée */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-700 block">
-              Premier versement (FCFA)
-            </label>
-            <input
-              type="number"
-              min={1000}
-              max={product.price}
-              step={500}
-              value={firstPayment}
-              onChange={(e) => setFirstPayment(e.target.value === "" ? "" : Number(e.target.value))}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-lg font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-lamanne-primary"
-              placeholder="ex : 25 000"
-              style={{ fontSize: "16px" }}
-            />
-            <p className="text-xs text-gray-400">Minimum 1 000 FCFA</p>
+            {minMonths === maxMonths ? (
+              <p className="text-sm font-semibold text-gray-700">Durée : {maxMonths} mois</p>
+            ) : (
+              <>
+                <label htmlFor="months" className="text-sm font-semibold text-gray-700 block">
+                  Durée de la cotisation
+                </label>
+                <select
+                  id="months"
+                  value={months}
+                  onChange={(e) => {
+                    setMonths(Number(e.target.value));
+                    setConfirming(false);
+                  }}
+                  disabled={saving}
+                  className="w-full h-12 border border-gray-200 rounded-xl px-4 font-semibold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-lamanne-primary"
+                  style={{ fontSize: "16px" }}
+                >
+                  {monthOptions.map((n) => (
+                    <option key={n} value={n}>
+                      {n} mois
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
           </div>
 
           {/* Résumé */}
-          {firstPaymentNum >= 1000 && (
-            <div className="bg-lamanne-light rounded-xl p-4 space-y-2">
+          <div className="bg-lamanne-light rounded-xl p-4 space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Prix total</span>
+              <span className="font-semibold text-gray-800">{formatCFA(product.price)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Durée</span>
+              <span className="font-semibold text-gray-800">{months} mois</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Environ</span>
+              <span className="font-black text-lamanne-primary text-base">
+                {formatCFA(monthlyAmount)} par mois
+              </span>
+            </div>
+            {deadline && (
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Vous payez aujourd&apos;hui</span>
-                <span className="font-black text-lamanne-primary text-base">
-                  {formatCFA(firstPaymentNum)}
-                </span>
+                <span className="text-gray-600">Date limite</span>
+                <span className="font-semibold text-gray-800">{formatDate(deadline.toISOString())}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Reste à verser</span>
-                <span className="font-semibold text-gray-800">{formatCFA(Math.max(0, remaining))}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Prix total</span>
-                <span className="font-semibold text-gray-800">{formatCFA(product.price)}</span>
-              </div>
-              {deadline && remaining > 0 && (
-                <div className="border-t border-lamanne-accent/20 pt-2 mt-2">
-                  <p className="text-xs text-gray-500 text-center">
-                    Il vous reste{" "}
-                    <strong className="text-lamanne-primary">{formatCFA(remaining)}</strong>{" "}
-                    à verser avant le{" "}
-                    <strong>{formatDate(deadline.toISOString())}</strong>
-                  </p>
+            )}
+            <div className="border-t border-lamanne-accent/20 pt-2 mt-2">
+              <p className="text-xs text-gray-500 text-center">
+                Aucun paiement aujourd&apos;hui : vous versez auprès de votre agent LAMANNE.
+              </p>
+            </div>
+          </div>
+
+          {!confirming ? (
+            <Button
+              className="w-full h-12 text-base font-bold"
+              onClick={() => setConfirming(true)}
+              disabled={saving || product.stock === 0}
+            >
+              <span className="flex items-center gap-2">
+                <Check className="h-5 w-5" />
+                Continuer
+              </span>
+            </Button>
+          ) : (
+            <div className="space-y-4">
+              <div className="border border-gray-200 rounded-xl p-4 space-y-2">
+                <div className="flex justify-between gap-3 text-sm">
+                  <span className="text-gray-600">Article</span>
+                  <span className="font-semibold text-gray-800 text-right">{product.name}</span>
                 </div>
-              )}
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Prix total</span>
+                  <span className="font-semibold text-gray-800">{formatCFA(product.price)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Durée</span>
+                  <span className="font-semibold text-gray-800">{months} mois</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Montant approximatif par mois</span>
+                  <span className="font-semibold text-lamanne-primary">{formatCFA(monthlyAmount)}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1 h-12"
+                  onClick={() => setConfirming(false)}
+                  disabled={saving}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  className="flex-1 h-12 font-bold"
+                  onClick={handleStartCotisation}
+                  disabled={saving || product.stock === 0}
+                >
+                  {saving ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Création...
+                    </span>
+                  ) : (
+                    "Confirmer la cotisation"
+                  )}
+                </Button>
+              </div>
             </div>
           )}
-
-          <Button
-            className="w-full h-12 text-base font-bold"
-            onClick={handleStartCotisation}
-            disabled={saving || product.stock === 0 || firstPaymentNum < 1000}
-          >
-            {saving ? (
-              <span className="flex items-center gap-2">
-                <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Démarrage...
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Démarrer ma cotisation
-              </span>
-            )}
-          </Button>
 
           {product.stock === 0 && (
             <p className="text-center text-sm text-red-500 font-medium">
