@@ -1,72 +1,74 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { createClientAccount } from "@/lib/client-accounts";
+import {
+  requireAuth,
+  requireRole,
+  validateInput,
+  checkOrigin,
+  handleApiError,
+  ApiError,
+} from "@/lib/api-security";
 
-const admin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = "force-dynamic";
 
 const schema = z.object({
-  full_name: z.string().min(2),
-  phone: z.string().min(8),
-  assigned_commercial: z.string().uuid().optional().or(z.literal("")),
+  full_name: z
+    .string()
+    .trim()
+    .min(2, "Le nom doit contenir au moins 2 caractères")
+    .max(100, "Nom trop long (100 caractères maximum)"),
+  phone: z.string().min(1, "Numéro requis").max(30, "Numéro trop long"),
+  assigned_commercial: z.union([z.uuid("Commercial invalide"), z.literal("")]).optional(),
 });
 
+/**
+ * Création d'un compte client par un admin, avec assignation optionnelle à
+ * un commercial actif. Le PIN temporaire est renvoyé UNE SEULE FOIS ici.
+ */
 export async function POST(req: NextRequest) {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  try {
+    checkOrigin(req);
+    const ctx = await requireAuth(req);
+    requireRole(ctx, ["admin", "super_admin"]);
+    const { full_name, phone, assigned_commercial } = validateInput(
+      schema,
+      await req.json(),
+    );
 
-  if (!user) {
-    return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-  }
+    const assignedCommercial = assigned_commercial ? assigned_commercial : null;
 
-  const { data: callerProfile } = await admin
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+    if (assignedCommercial) {
+      const { data: commercial, error: commercialError } = await supabaseAdmin
+        .from("profiles")
+        .select("id, role, is_suspended")
+        .eq("id", assignedCommercial)
+        .maybeSingle();
 
-  if (!callerProfile || !["admin", "super_admin"].includes(callerProfile.role)) {
-    return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
-  }
+      if (commercialError) {
+        console.error("[AdminClients POST] commercial lookup:", commercialError);
+        throw new ApiError(500, "Erreur de vérification", "INTERNAL");
+      }
+      if (!commercial || commercial.role !== "commercial" || commercial.is_suspended) {
+        throw new ApiError(400, "Commercial invalide", "INVALID_INPUT");
+      }
+    }
 
-  const body = await req.json();
-  const parsed = schema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Données invalides" }, { status: 400 });
-  }
-
-  const { full_name, phone, assigned_commercial } = parsed.data;
-  const cleanPhone = phone.replace(/\s/g, "").replace(/^00/, "+");
-  const digits = cleanPhone.replace(/\D/g, "");
-  const email = `phone_${digits}@lamanne.app`;
-
-  // Auto-generate a 4-digit PIN — client doesn't need it to start
-  const pin = String(Math.floor(1000 + Math.random() * 9000));
-
-  const { data: newUser, error: createError } = await admin.auth.admin.createUser({
-    email,
-    password: pin + "LM",
-    email_confirm: true,
-    user_metadata: { full_name, phone: cleanPhone },
-  });
-
-  if (createError) {
-    return NextResponse.json({ error: createError.message }, { status: 400 });
-  }
-
-  if (newUser?.user) {
-    await admin.from("profiles").upsert({
-      id: newUser.user.id,
-      full_name,
-      phone: cleanPhone,
-      role: "user",
-      created_by: user.id,
-      ...(assigned_commercial ? { assigned_commercial } : {}),
+    const { userId, tempPin } = await createClientAccount({
+      fullName: full_name,
+      rawPhone: phone,
+      createdBy: ctx.user.id,
+      assignedCommercial,
+      pinMode: { kind: "temporary" },
     });
-  }
 
-  return NextResponse.json({ ok: true });
+    // Le PIN temporaire transite ici et nulle part ailleurs : pas de cache
+    return NextResponse.json(
+      { ok: true, client_id: userId, temp_pin: tempPin },
+      { status: 201, headers: { "Cache-Control": "no-store" } },
+    );
+  } catch (e) {
+    return handleApiError(e);
+  }
 }

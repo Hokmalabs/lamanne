@@ -1,35 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { randomInt } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { createClientAccount } from "@/lib/client-accounts";
 import {
   requireAuth,
   requireRole,
   validateInput,
   checkOrigin,
   handleApiError,
-  ApiError,
 } from "@/lib/api-security";
 
 export const dynamic = "force-dynamic";
 
 const schema = z.object({
-  full_name: z.string().trim().min(2, "Le nom doit contenir au moins 2 caractères").max(100),
-  phone: z.string().regex(/^\+\d{10,15}$/, "Numéro de téléphone invalide (format international attendu, ex: +225XXXXXXXXXX)"),
+  full_name: z
+    .string()
+    .trim()
+    .min(2, "Le nom doit contenir au moins 2 caractères")
+    .max(100, "Nom trop long (100 caractères maximum)"),
+  phone: z.string().min(1, "Numéro requis").max(30, "Numéro trop long"),
 });
 
 /**
- * Route utilisée par un commercial (ou admin/super_admin) pour créer un
- * nouveau compte client qui sera automatiquement assigné au commercial
- * appelant.
+ * Création d'un compte client par un commercial (ou un admin / super_admin).
  *
- * Différences avec /api/auth/register-phone (auto-inscription anonyme) :
- * - Nécessite une session authentifiée (commercial ou plus)
- * - assigned_commercial est TOUJOURS rempli côté serveur avec ctx.user.id
- *   (jamais lu du body, sécurité par construction)
- * - Le rôle du client créé est TOUJOURS "user" (hardcodé)
- * - Pour un admin/super_admin qui crée un client, assigned_commercial reste
- *   ctx.user.id (l'admin peut réassigner ensuite via un autre flow admin)
+ * - assigned_commercial n'est JAMAIS lu du body : c'est l'appelant s'il est
+ *   commercial, sinon null (l'admin assigne ensuite via son propre flow)
+ * - Le client reçoit un PIN temporaire, renvoyé UNE SEULE FOIS ici, qu'il
+ *   devra changer à sa première connexion
  */
 export async function POST(req: NextRequest) {
   try {
@@ -38,74 +36,33 @@ export async function POST(req: NextRequest) {
     requireRole(ctx, ["commercial", "admin", "super_admin"]);
     const { full_name, phone } = validateInput(schema, await req.json());
 
-    // Vérifier si un profil avec ce téléphone existe déjà
-    const { data: existing } = await supabaseAdmin
-      .from("profiles")
-      .select("id")
-      .eq("phone", phone)
-      .maybeSingle();
+    const assignedCommercial = ctx.profile.role === "commercial" ? ctx.user.id : null;
 
-    if (existing) {
-      throw new ApiError(409, "Ce numéro de téléphone est déjà enregistré", "INVALID_INPUT");
-    }
-
-    // Générer un email fake déterministe à partir du téléphone (compatibilité Supabase Auth)
-    const fakeEmail = `${phone.replace(/[^0-9]/g, "")}@lamanne.local`;
-
-    // Générer un mot de passe temporaire (le client se connectera via téléphone)
-    const tempPassword = `${randomInt(100000, 999999)}-${randomInt(100000, 999999)}`;
-
-    // 1. Créer le compte auth (le trigger handle_new_user créera le profile avec role='user')
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: fakeEmail,
-      password: tempPassword,
-      email_confirm: true,
-      phone_confirm: true,
-      user_metadata: {
-        full_name,
-        phone,
-      },
+    const { userId, tempPin } = await createClientAccount({
+      fullName: full_name,
+      rawPhone: phone,
+      createdBy: ctx.user.id,
+      assignedCommercial,
+      pinMode: { kind: "temporary" },
     });
 
-    if (authError || !authData?.user) {
-      console.error("[RegisterClient] auth create user:", authError);
-      throw new ApiError(500, "Erreur lors de la création du compte", "INTERNAL");
-    }
-
-    const newUserId = authData.user.id;
-
-    // 2. Mettre à jour le profile pour renseigner l'assignation commerciale
-    //    Le trigger handle_new_user a déjà créé le profil avec role='user' par défaut.
-    //    On patch seulement assigned_commercial + full_name + phone (au cas où le trigger
-    //    n'a pas récupéré les metadata).
-    const { error: updateError } = await supabaseAdmin
-      .from("profiles")
-      .update({
-        full_name,
-        phone,
-        assigned_commercial: ctx.user.id,
-      })
-      .eq("id", newUserId);
-
-    if (updateError) {
-      console.error("[RegisterClient] profile update:", updateError);
-      // Non bloquant : le compte auth existe déjà, on log mais on retourne succès
-      // pour éviter de bloquer le commercial sur un cas où le trigger n'aurait pas
-      // encore créé le profil au moment de l'update
-    }
-
-    // 3. Notifier le nouveau client (bienvenue)
-    await supabaseAdmin.from("notifications").insert({
-      user_id: newUserId,
+    // Notification de bienvenue (échec non bloquant : le compte est créé)
+    const { error: notifError } = await supabaseAdmin.from("notifications").insert({
+      user_id: userId,
       title: "Bienvenue sur LAMANNE",
-      message: `Votre compte a été créé par votre agent commercial. Vous pouvez consulter le catalogue et suivre vos cotisations dans votre espace.`,
+      message:
+        "Votre compte a été créé par votre agent commercial. Vous pouvez consulter le catalogue et suivre vos cotisations dans votre espace.",
       type: "info",
     });
+    if (notifError) {
+      console.error("[RegisterClient] notification:", notifError);
+    }
 
-    return NextResponse.json({
-      ok: true,
-      client_id: newUserId,
-    });
+    // Le PIN temporaire transite ici et nulle part ailleurs : pas de cache
+    return NextResponse.json(
+      { ok: true, client_id: userId, temp_pin: tempPin },
+      { status: 201, headers: { "Cache-Control": "no-store" } },
+    );
   } catch (e) {
     return handleApiError(e);
   }

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Search, UserCircle, Phone, ClipboardList } from "lucide-react";
+import { Search, UserCircle, Phone, ClipboardList, KeyRound } from "lucide-react";
+import SecretRevealDialog from "@/components/SecretRevealDialog";
+import { apiPost, ApiClientError } from "@/lib/api-client";
 
 type Client = {
   id: string;
@@ -17,6 +19,9 @@ type Commercial = {
   phone: string | null;
 };
 
+/** Nouveau code à remettre : ne vit que dans ce state, vidé à la fermeture */
+type PinReveal = { name: string; phone: string; pin: string };
+
 export default function ClientsTableWithSearch({
   clients,
   commercialMap,
@@ -27,6 +32,83 @@ export default function ClientsTableWithSearch({
   cotisationCountMap: Record<string, number>;
 }) {
   const [search, setSearch] = useState("");
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [resettingId, setResettingId] = useState<string | null>(null);
+  const [resetError, setResetError] = useState<{ id: string; message: string } | null>(null);
+  const [pinReveal, setPinReveal] = useState<PinReveal | null>(null);
+
+  const handleResetPin = async (client: Client) => {
+    setResettingId(client.id);
+    setResetError(null);
+    try {
+      const res = await apiPost<{ ok: true; temp_pin: string }>(
+        `/api/admin/clients/${client.id}/pin`,
+        {},
+      );
+      setConfirmingId(null);
+      setPinReveal({
+        name: client.full_name ?? "ce client",
+        phone: client.phone ?? "",
+        pin: res.temp_pin,
+      });
+    } catch (err) {
+      setResetError({
+        id: client.id,
+        message: err instanceof ApiClientError ? err.message : "Réinitialisation impossible.",
+      });
+    } finally {
+      setResettingId(null);
+    }
+  };
+
+  const renderResetPin = (client: Client, compact: boolean) => {
+    const busy = resettingId === client.id;
+    const rowError = resetError?.id === client.id ? resetError.message : null;
+
+    return (
+      <div className="space-y-1.5">
+        {confirmingId === client.id ? (
+          <div className="space-y-1.5">
+            <p className="text-xs text-gray-700">
+              Générer un nouveau code ? L&apos;ancien ne fonctionnera plus.
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleResetPin(client)}
+                disabled={busy}
+                className="min-h-[44px] px-3 rounded-lg bg-lamanne-primary text-white text-xs font-semibold disabled:opacity-60"
+              >
+                {busy ? "Génération…" : "Générer"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setConfirmingId(null); setResetError(null); }}
+                disabled={busy}
+                className="min-h-[44px] px-3 rounded-lg border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-50"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => { setConfirmingId(client.id); setResetError(null); }}
+            aria-label={`Réinitialiser le PIN de ${client.full_name ?? "ce client"}`}
+            title="Réinitialiser le PIN"
+            className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center gap-1.5 px-2 rounded-lg text-lamanne-primary hover:bg-lamanne-soft transition-colors text-xs font-semibold"
+          >
+            <KeyRound className="h-4 w-4" />
+            {!compact && "Réinitialiser le PIN"}
+          </button>
+        )}
+        {rowError && (
+          <p role="alert" className="text-xs text-lamanne-danger">{rowError}</p>
+        )}
+      </div>
+    );
+  };
 
   const filtered = clients.filter((c) => {
     if (!search) return true;
@@ -80,6 +162,9 @@ export default function ClientsTableWithSearch({
                     <span>{comm ? comm.full_name : <span className="italic">Autonome</span>}</span>
                     <span>{new Date(client.created_at).toLocaleDateString("fr-FR")}</span>
                   </div>
+                  <div className="pt-2 mt-2 border-t border-gray-50">
+                    {renderResetPin(client, false)}
+                  </div>
                 </div>
               );
             })}
@@ -95,6 +180,7 @@ export default function ClientsTableWithSearch({
                   <th className="text-left px-6 py-3 font-semibold text-gray-500">Commercial</th>
                   <th className="text-left px-6 py-3 font-semibold text-gray-500">Cotisations actives</th>
                   <th className="text-left px-6 py-3 font-semibold text-gray-500">Inscrit le</th>
+                  <th className="text-left px-6 py-3 font-semibold text-gray-500">Code PIN</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -142,6 +228,9 @@ export default function ClientsTableWithSearch({
                       <td className="px-6 py-4 text-gray-400 text-xs">
                         {new Date(client.created_at).toLocaleDateString("fr-FR")}
                       </td>
+                      <td className="px-6 py-2 max-w-[220px]">
+                        {renderResetPin(client, true)}
+                      </td>
                     </tr>
                   );
                 })}
@@ -150,6 +239,16 @@ export default function ClientsTableWithSearch({
           </div>
         </>
       )}
+
+      <SecretRevealDialog
+        open={pinReveal !== null}
+        title={`Nouveau code de ${pinReveal?.name ?? ""}`}
+        secret={pinReveal?.pin ?? ""}
+        hint={`Connexion : onglet Téléphone, numéro ${pinReveal?.phone ?? ""}. Code valable 7 jours.`}
+        warning="Remettez ce code au client en main propre. À sa première connexion, il devra choisir son propre code."
+        confirmLabel="J'ai remis le code"
+        onClose={() => setPinReveal(null)}
+      />
     </>
   );
 }

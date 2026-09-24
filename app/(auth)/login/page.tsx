@@ -7,25 +7,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
-import { Eye, EyeOff, LogIn, Phone, Mail } from "lucide-react";
+import { Eye, EyeOff, LogIn, Phone, Mail, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Logo from "@/components/Logo";
 import { normalizeCIPhone, phoneToLoginEmail, PHONE_FORMAT_MESSAGE } from "@/lib/phone";
+import { PIN_LENGTH, pinProblem } from "@/lib/pin-rules";
+import { apiPost, ApiClientError } from "@/lib/api-client";
 
 /**
- * Traduit la saisie de l'onglet Téléphone en mot de passe Supabase.
+ * Traduit la saisie « équipe » de l'onglet Téléphone en mot de passe Supabase.
  *
- * Deux publics cohabitent : les clients (PIN 4 chiffres, historique) et les
- * membres de l'équipe (mot de passe fort XXXX-XXXX-XXXX). La saisie du mot de
- * passe fort est tolérante : minuscules, espaces ou tirets oubliés.
+ * Les clients (PIN 6 chiffres) passent par /api/auth/phone-login et
+ * n'arrivent jamais ici. La saisie du mot de passe fort de l'équipe
+ * (XXXX-XXXX-XXXX) est tolérante : minuscules, espaces ou tirets oubliés.
  */
 // Non exportée : un page.tsx Next.js ne peut exporter que default et la config de route.
 function resolvePhonePassword(raw: string): string | null {
   const v = raw.trim();
   if (!v) return null;
-
-  // TEMPORAIRE — PIN client legacy, supprimé par feat/auth-pin
-  if (/^\d{4}$/.test(v)) return v + "LM";
 
   const compact = v.toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (compact.length === 12) {
@@ -58,12 +57,17 @@ function safeRedirect(raw: string | null): string | null {
   }
 }
 
+const onlyDigits = (v: string) => v.replace(/\D/g, "").slice(0, PIN_LENGTH);
+
+type PhoneLoginResponse = { ok: true; pin_change_required?: boolean };
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawRedirectTo = searchParams.get("redirectTo");
+  const justRegistered = searchParams.get("registered") === "1";
 
-  const [tab, setTab] = useState<"email" | "phone">("email");
+  const [tab, setTab] = useState<"email" | "phone">(justRegistered ? "phone" : "email");
   // Email form
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -72,9 +76,33 @@ function LoginForm() {
   const [phone, setPhone] = useState("");
   const [phonePassword, setPhonePassword] = useState("");
   const [showPhonePassword, setShowPhonePassword] = useState(false);
+  // Étape 2 client : choix du code personnel après un PIN temporaire
+  const [pinStep, setPinStep] = useState<"credentials" | "choose">("credentials");
+  const [newPin, setNewPin] = useState("");
+  const [newPinConfirm, setNewPinConfirm] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const normalizedPhone = normalizeCIPhone(phone);
+  const newPinIssue = newPin.length === PIN_LENGTH
+    ? pinProblem(newPin, normalizedPhone ?? undefined)
+    : null;
+  const newPinMismatch = newPinConfirm.length === PIN_LENGTH && newPinConfirm !== newPin;
+  const canSubmitNewPin =
+    newPin.length === PIN_LENGTH && !newPinIssue && newPinConfirm === newPin;
+
+  // Aucun code ne reste en mémoire au-delà de son usage
+  const clearSecrets = () => {
+    setPhonePassword("");
+    setNewPin("");
+    setNewPinConfirm("");
+  };
+
+  const backToCredentials = () => {
+    clearSecrets();
+    setPinStep("credentials");
+  };
 
   const getRedirectAndCheck = async (userId: string): Promise<string | null> => {
     const { data: profile } = await supabase
@@ -114,19 +142,70 @@ function LoginForm() {
     router.refresh();
   };
 
+  /** Connexion client : le PIN est vérifié par notre serveur, qui ouvre la session. */
+  const clientLogin = async (phoneValue: string, pin: string, nextPin?: string) => {
+    try {
+      const res = await apiPost<PhoneLoginResponse>(
+        "/api/auth/phone-login",
+        nextPin === undefined ? { phone: phoneValue, pin } : { phone: phoneValue, pin, new_pin: nextPin },
+      );
+
+      if (res.pin_change_required) {
+        // Le PIN temporaire reste en state le temps de l'étape 2 uniquement
+        setNewPin("");
+        setNewPinConfirm("");
+        setPinStep("choose");
+        setLoading(false);
+        return;
+      }
+
+      clearSecrets();
+      router.push(safeRedirect(rawRedirectTo) ?? "/dashboard");
+      router.refresh();
+    } catch (err) {
+      const message =
+        err instanceof ApiClientError ? err.message : "Connexion impossible. Vérifiez votre réseau.";
+      if (nextPin !== undefined && err instanceof ApiClientError && err.status === 400) {
+        // Nouveau code refusé : on reste à l'étape 2
+        setNewPin("");
+        setNewPinConfirm("");
+      } else {
+        backToCredentials();
+      }
+      setError(message);
+      setLoading(false);
+    }
+  };
+
   const handlePhoneLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    const normalizedPhone = normalizeCIPhone(phone);
     if (!normalizedPhone) {
       setError(PHONE_FORMAT_MESSAGE);
       setLoading(false);
       return;
     }
 
-    const resolved = resolvePhonePassword(phonePassword);
+    const secret = phonePassword.trim();
+
+    // Ancien PIN client à 4 chiffres : plus accepté, aucun appel réseau
+    if (/^\d{4}$/.test(secret)) {
+      setPhonePassword("");
+      setError("Les codes PIN ont désormais 6 chiffres. Demandez un nouveau code à votre agent.");
+      setLoading(false);
+      return;
+    }
+
+    // PIN client à 6 chiffres
+    if (/^\d{6}$/.test(secret)) {
+      await clientLogin(phone.trim(), secret);
+      return;
+    }
+
+    // Sinon : mot de passe d'un membre de l'équipe
+    const resolved = resolvePhonePassword(secret);
     if (!resolved) {
       setError("Saisissez votre code PIN ou votre mot de passe.");
       setLoading(false);
@@ -137,6 +216,7 @@ function LoginForm() {
       email: phoneToLoginEmail(normalizedPhone),
       password: resolved,
     });
+    setPhonePassword("");
 
     if (error) {
       // Message unique : ne pas révéler si le numéro existe
@@ -149,6 +229,17 @@ function LoginForm() {
     if (!dest) return;
     router.push(dest);
     router.refresh();
+  };
+
+  const handleChoosePin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!canSubmitNewPin) {
+      setError(newPinIssue ?? "Les deux codes doivent être identiques.");
+      return;
+    }
+    setLoading(true);
+    await clientLogin(phone.trim(), phonePassword.trim(), newPin);
   };
 
   return (
@@ -169,7 +260,7 @@ function LoginForm() {
           <button
             key={key}
             type="button"
-            onClick={() => { setTab(key); setError(null); }}
+            onClick={() => { setTab(key); setError(null); backToCredentials(); }}
             className={cn(
               "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all",
               tab === key ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
@@ -180,6 +271,15 @@ function LoginForm() {
           </button>
         ))}
       </div>
+
+      {justRegistered && !error && (
+        <div
+          role="status"
+          className="mb-4 rounded-xl bg-lamanne-success/10 text-lamanne-success text-sm px-4 py-3"
+        >
+          Compte créé, connectez-vous.
+        </div>
+      )}
 
       {error && (
         <div
@@ -199,12 +299,7 @@ function LoginForm() {
               style={{ fontSize: "16px" }} />
           </div>
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">Mot de passe</Label>
-              <Link href="/forgot-password" className="text-xs text-lamanne-accent hover:underline">
-                Mot de passe oublié ?
-              </Link>
-            </div>
+            <Label htmlFor="password">Mot de passe</Label>
             <div className="relative">
               <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••"
                 value={password} onChange={(e) => setPassword(e.target.value)} required
@@ -221,6 +316,66 @@ function LoginForm() {
               : <span className="flex items-center gap-2"><LogIn className="h-5 w-5" />Se connecter</span>}
           </Button>
         </form>
+      ) : pinStep === "choose" ? (
+        <form onSubmit={handleChoosePin} className="space-y-5">
+          <div>
+            <h3 className="font-sora text-lg font-black text-gray-900">
+              Choisissez votre code personnel
+            </h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Votre code temporaire est valide. Choisissez maintenant un code à 6 chiffres
+              que vous seul connaissez.
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="new-pin">Nouveau code PIN</Label>
+            <Input
+              id="new-pin"
+              type="password"
+              inputMode="numeric"
+              autoComplete="new-password"
+              maxLength={PIN_LENGTH}
+              placeholder="••••••"
+              value={newPin}
+              onChange={(e) => setNewPin(onlyDigits(e.target.value))}
+              required
+              className="text-center tracking-[0.5em]"
+              style={{ fontSize: "24px" }}
+            />
+            {newPinIssue ? (
+              <p className="text-xs text-lamanne-danger">{newPinIssue}</p>
+            ) : (
+              <p className="text-xs text-gray-400">6 chiffres, sans suite ni répétition.</p>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="new-pin-confirm">Confirmez le code</Label>
+            <Input
+              id="new-pin-confirm"
+              type="password"
+              inputMode="numeric"
+              autoComplete="new-password"
+              maxLength={PIN_LENGTH}
+              placeholder="••••••"
+              value={newPinConfirm}
+              onChange={(e) => setNewPinConfirm(onlyDigits(e.target.value))}
+              required
+              className="text-center tracking-[0.5em]"
+              style={{ fontSize: "24px" }}
+            />
+            {newPinMismatch && (
+              <p className="text-xs text-lamanne-danger">Les deux codes doivent être identiques.</p>
+            )}
+          </div>
+          <Button type="submit" className="w-full h-12 text-base font-bold" disabled={loading || !canSubmitNewPin}>
+            {loading ? <span className="flex items-center gap-2"><span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Enregistrement...</span>
+              : <span className="flex items-center gap-2"><KeyRound className="h-5 w-5" />Valider mon code</span>}
+          </Button>
+          <Button type="button" variant="outline" className="w-full min-h-[44px]" disabled={loading}
+            onClick={() => { setError(null); backToCredentials(); }}>
+            Retour
+          </Button>
+        </form>
       ) : (
         <form onSubmit={handlePhoneLogin} className="space-y-5">
           <div className="space-y-1.5">
@@ -230,7 +385,7 @@ function LoginForm() {
               style={{ fontSize: "16px" }} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="phone-password">Code PIN ou mot de passe</Label>
+            <Label htmlFor="phone-password">Code PIN (clients) ou mot de passe (équipe)</Label>
             <div className="relative">
               <Input
                 id="phone-password"

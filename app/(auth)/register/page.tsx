@@ -1,160 +1,86 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/lib/supabase";
-import { Eye, EyeOff, UserPlus, CheckCircle, Phone, Mail, Gift } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Phone, ShieldCheck } from "lucide-react";
 import Logo from "@/components/Logo";
+import { normalizeCIPhone, PHONE_FORMAT_MESSAGE } from "@/lib/phone";
+import { PIN_LENGTH, pinProblem } from "@/lib/pin-rules";
+import { apiPost, ApiClientError } from "@/lib/api-client";
 
-function normalizePhone(phone: string): string {
-  return phone.replace(/\s/g, "").replace(/^00/, "+");
-}
+const onlyDigits = (v: string) => v.replace(/\D/g, "").slice(0, PIN_LENGTH);
 
-function phoneToEmail(phone: string): string {
-  const digits = normalizePhone(phone).replace(/\D/g, "");
-  return `phone_${digits}@lamanne.app`;
-}
+type RegisterResponse = { ok: true; session: boolean };
 
 function RegisterForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
-  const [tab, setTab] = useState<"email" | "phone">("email");
-
-  // Common
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
-  const [referralCode, setReferralCode] = useState("");
-
-  useEffect(() => {
-    const ref = searchParams.get("ref");
-    if (ref) setReferralCode(ref.toUpperCase());
-  }, [searchParams]);
-
-  // Email mode
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-
-  // Phone mode
   const [pin, setPin] = useState("");
+  const [pinConfirm, setPinConfirm] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [successEmail, setSuccessEmail] = useState("");
 
-  const handleEmailRegister = async (e: React.FormEvent) => {
+  const normalizedPhone = normalizeCIPhone(phone);
+  const pinIssue = pin.length === PIN_LENGTH ? pinProblem(pin, normalizedPhone ?? undefined) : null;
+  const pinMismatch = pinConfirm.length === PIN_LENGTH && pinConfirm !== pin;
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
-    if (password.length < 8) {
-      setError("Le mot de passe doit contenir au moins 8 caractères.");
-      setLoading(false);
+    const name = fullName.trim();
+    if (name.length < 2 || name.length > 100) {
+      setError("Le nom doit contenir entre 2 et 100 caractères.");
+      return;
+    }
+    if (!normalizedPhone) {
+      setError(PHONE_FORMAT_MESSAGE);
+      return;
+    }
+    const problem = pinProblem(pin, normalizedPhone);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+    if (pin !== pinConfirm) {
+      setError("Les deux codes doivent être identiques.");
       return;
     }
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName, phone, referral_code_used: referralCode || null } },
-    });
+    setLoading(true);
+    try {
+      const res = await apiPost<RegisterResponse>("/api/auth/register-phone", {
+        full_name: name,
+        phone: phone.trim(),
+        pin,
+      });
+      setPin("");
+      setPinConfirm("");
 
-    if (signUpError) {
+      if (res.session) {
+        router.push("/dashboard");
+        router.refresh();
+      } else {
+        router.push("/login?registered=1");
+      }
+    } catch (err) {
+      setPin("");
+      setPinConfirm("");
       setError(
-        signUpError.message === "User already registered"
-          ? "Cet email est déjà utilisé. Veuillez vous connecter."
-          : `Erreur : ${signUpError.message}`
+        err instanceof ApiClientError
+          ? err.message
+          : "Création du compte impossible. Vérifiez votre réseau.",
       );
       setLoading(false);
-      return;
     }
-
-    if (data.session) {
-      router.push("/dashboard");
-      router.refresh();
-      return;
-    }
-
-    setSuccessEmail(email);
-    setSuccess(true);
-    setLoading(false);
   };
-
-  const handlePhoneRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    if (!phone.trim()) {
-      setError("Le numéro de téléphone est requis.");
-      setLoading(false);
-      return;
-    }
-
-    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-      setError("Le code PIN doit être exactement 4 chiffres.");
-      setLoading(false);
-      return;
-    }
-
-    // Use admin API to create user without triggering email confirmation
-    const res = await fetch("/api/auth/register-phone", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ full_name: fullName, phone, pin, role: "user", referral_code_used: referralCode || null }),
-    });
-
-    if (!res.ok) {
-      const d = await res.json();
-      setError(d.error ?? "Erreur lors de la création du compte.");
-      setLoading(false);
-      return;
-    }
-
-    // Account created — now sign in automatically
-    const fakeEmail = phoneToEmail(phone);
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: fakeEmail,
-      password: pin + "LM",
-    });
-
-    if (signInError) {
-      setError("Compte créé mais connexion impossible. Essayez de vous connecter manuellement.");
-      setLoading(false);
-      return;
-    }
-
-    router.push("/dashboard");
-    router.refresh();
-  };
-
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-lamanne-primary to-lamanne-accent flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md text-center">
-          <div className="w-16 h-16 bg-lamanne-success/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="h-8 w-8 text-lamanne-success" />
-          </div>
-          <h2 className="font-sora text-2xl font-black text-gray-900 mb-2">Compte créé !</h2>
-          <p className="text-gray-500 mb-6">
-            Un email de confirmation vous a été envoyé à{" "}
-            <strong>{successEmail}</strong>. Vérifiez votre boîte mail pour
-            activer votre compte.
-          </p>
-          <Link href="/login">
-            <Button className="w-full">Aller à la connexion</Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-lamanne-primary to-lamanne-accent flex items-center justify-center p-4 py-10">
@@ -176,188 +102,104 @@ function RegisterForm() {
             </p>
           </div>
 
-          {/* Tabs */}
-          <div className="flex bg-gray-100 rounded-xl p-1 gap-1 mb-6">
-            {([
-              { key: "email" as const, label: "Email", icon: Mail },
-              { key: "phone" as const, label: "Téléphone", icon: Phone },
-            ]).map(({ key, label, icon: Icon }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => { setTab(key); setError(null); }}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all",
-                  tab === key ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </button>
-            ))}
-          </div>
-
           {error && (
-            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+            <div
+              role="alert"
+              className="mb-4 rounded-xl bg-lamanne-danger/10 text-lamanne-danger text-sm px-4 py-3"
+            >
               {error}
             </div>
           )}
 
-          {/* Shared: full name */}
-          <div className="space-y-1.5 mb-4">
-            <Label htmlFor="fullName">Nom complet</Label>
-            <Input
-              id="fullName"
-              type="text"
-              placeholder="Kouassi Ama Marie"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
-              autoComplete="name"
-              style={{ fontSize: "16px" }}
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="fullName">Nom complet</Label>
+              <Input
+                id="fullName"
+                type="text"
+                placeholder="Kouassi Ama Marie"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+                maxLength={100}
+                autoComplete="name"
+                style={{ fontSize: "16px" }}
+              />
+            </div>
 
-          {/* Referral code */}
-          <div className="space-y-1.5 mb-4">
-            <Label htmlFor="referral" className="flex items-center gap-1.5">
-              <Gift className="h-3.5 w-3.5 text-[#F5A623]" />
-              Code de parrainage <span className="text-gray-400 font-normal">(optionnel)</span>
-            </Label>
-            <Input
-              id="referral"
-              type="text"
-              placeholder="ex : AB12CD"
-              value={referralCode}
-              onChange={(e) => setReferralCode(e.target.value.toUpperCase().slice(0, 6))}
-              autoComplete="off"
-              style={{ fontSize: "16px" }}
-            />
-          </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="phone">Numéro de téléphone</Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="07 00 00 00 00"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+                autoComplete="tel"
+                style={{ fontSize: "16px" }}
+              />
+              <p className="text-xs text-gray-400">10 chiffres</p>
+            </div>
 
-          {tab === "email" ? (
-            <form onSubmit={handleEmailRegister} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="email">Adresse e-mail</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="vous@exemple.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                  style={{ fontSize: "16px" }}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="phone-email">Numéro de téléphone</Label>
-                <Input
-                  id="phone-email"
-                  type="tel"
-                  placeholder="+225 07 00 00 00 00"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  autoComplete="tel"
-                  style={{ fontSize: "16px" }}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="password">Mot de passe</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Minimum 8 caractères"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    autoComplete="new-password"
-                    className="pr-11"
-                    style={{ fontSize: "16px" }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                {password && (
-                  <div className="flex gap-1 mt-1">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div
-                        key={i}
-                        className={`h-1 flex-1 rounded-full ${
-                          password.length >= i * 2
-                            ? password.length >= 8
-                              ? "bg-lamanne-success"
-                              : "bg-lamanne-warning"
-                            : "bg-gray-200"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <Button type="submit" className="w-full h-12 text-base font-bold mt-2" disabled={loading}>
-                {loading
-                  ? <span className="flex items-center gap-2"><span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Création...</span>
-                  : <span className="flex items-center gap-2"><UserPlus className="h-5 w-5" />Créer mon compte</span>}
-              </Button>
-            </form>
-          ) : (
-            <form onSubmit={handlePhoneRegister} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="phone-tel">Numéro de téléphone</Label>
-                <Input
-                  id="phone-tel"
-                  type="tel"
-                  placeholder="+225 07 00 00 00 00"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  required
-                  autoComplete="tel"
-                  style={{ fontSize: "16px" }}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="pin">Code PIN (4 chiffres)</Label>
-                <Input
-                  id="pin"
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={4}
-                  placeholder="••••"
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  required
-                  className="text-center text-2xl tracking-[0.5em]"
-                  style={{ fontSize: "24px" }}
-                />
+            <div className="space-y-1.5">
+              <Label htmlFor="pin">Code PIN (6 chiffres)</Label>
+              <Input
+                id="pin"
+                type="password"
+                inputMode="numeric"
+                autoComplete="new-password"
+                maxLength={PIN_LENGTH}
+                placeholder="••••••"
+                value={pin}
+                onChange={(e) => setPin(onlyDigits(e.target.value))}
+                required
+                className="text-center tracking-[0.5em]"
+                style={{ fontSize: "24px" }}
+              />
+              {pinIssue ? (
+                <p className="text-xs text-lamanne-danger">{pinIssue}</p>
+              ) : (
                 <p className="text-xs text-gray-400">
-                  Ce code vous servira à vous connecter. Choisissez-le bien.
+                  Ce code vous servira à vous connecter. Évitez les suites et les répétitions.
                 </p>
-              </div>
+              )}
+            </div>
 
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-                <p className="text-xs text-amber-700">
-                  <strong>Sans email</strong> — votre numéro de téléphone et code PIN seront vos seuls identifiants. Mémorisez-les bien.
-                </p>
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="pin-confirm">Confirmez le code PIN</Label>
+              <Input
+                id="pin-confirm"
+                type="password"
+                inputMode="numeric"
+                autoComplete="new-password"
+                maxLength={PIN_LENGTH}
+                placeholder="••••••"
+                value={pinConfirm}
+                onChange={(e) => setPinConfirm(onlyDigits(e.target.value))}
+                required
+                className="text-center tracking-[0.5em]"
+                style={{ fontSize: "24px" }}
+              />
+              {pinMismatch && (
+                <p className="text-xs text-lamanne-danger">Les deux codes doivent être identiques.</p>
+              )}
+            </div>
 
-              <Button type="submit" className="w-full h-12 text-base font-bold" disabled={loading}>
-                {loading
-                  ? <span className="flex items-center gap-2"><span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Création...</span>
-                  : <span className="flex items-center gap-2"><Phone className="h-5 w-5" />Créer mon compte</span>}
-              </Button>
-            </form>
-          )}
+            <div className="flex gap-2 rounded-xl bg-lamanne-soft p-3">
+              <ShieldCheck className="h-4 w-4 text-lamanne-primary flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-gray-800">
+                Votre numéro et votre code PIN sont vos identifiants. Ne communiquez jamais
+                votre code, même à un agent.
+              </p>
+            </div>
+
+            <Button type="submit" className="w-full h-12 text-base font-bold" disabled={loading}>
+              {loading
+                ? <span className="flex items-center gap-2"><span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Création...</span>
+                : <span className="flex items-center gap-2"><Phone className="h-5 w-5" />Créer mon compte</span>}
+            </Button>
+          </form>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-500">
@@ -378,9 +220,5 @@ function RegisterForm() {
 }
 
 export default function RegisterPage() {
-  return (
-    <Suspense>
-      <RegisterForm />
-    </Suspense>
-  );
+  return <RegisterForm />;
 }
