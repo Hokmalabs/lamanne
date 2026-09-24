@@ -9,152 +9,190 @@ import {
   handleApiError,
   ApiError,
 } from "@/lib/api-security";
+import { MIN_VERSEMENT_CASH } from "@/lib/versement";
 
 export const dynamic = "force-dynamic";
 
 const schema = z.object({
   client_id: z.string().uuid("Identifiant client invalide"),
   product_id: z.string().uuid("Identifiant produit invalide"),
-  first_payment: z
-    .number()
-    .int("Le montant doit être un nombre entier")
-    .min(1000, "Le versement minimum est de 1 000 FCFA"),
+  months: z.number().int("Durée invalide").min(1, "Durée invalide"),
+  first_payment: z.number().int("Montant entier requis").min(0, "Montant invalide"),
+  idempotency_key: z.string().uuid("Clé invalide"),
 });
 
-function addMonths(dateStr: string, months: number): string {
-  const d = new Date(dateStr);
-  d.setMonth(d.getMonth() + months);
-  return d.toISOString();
-}
+/** Résultat de record_payment, imbriqué quand un premier versement est fait */
+type PaymentResult = {
+  idempotent: boolean;
+  just_completed: boolean;
+  new_status: string;
+  amount_paid: number;
+  amount_remaining: number;
+  withdrawal_code: string | null;
+};
+
+/** Résultat de la RPC create_cotisation_with_payment */
+type CreateCotisationResult = {
+  idempotent: boolean;
+  cotisation_id: string;
+  payment?: PaymentResult | null;
+  // Présents uniquement en cas de rejeu (idempotent: true)
+  amount_paid?: number;
+  new_status?: string;
+};
+
+/** Codes d'erreur levés par create_cotisation_with_payment → réponse HTTP */
+const RPC_ERRORS: { code: string; status: number; message: string }[] = [
+  { code: "PRODUIT_INTROUVABLE", status: 404, message: "Produit introuvable" },
+  { code: "PRODUIT_INDISPONIBLE", status: 409, message: "Produit indisponible" },
+  { code: "DUREE_INVALIDE", status: 400, message: "Cette durée n'est pas proposée pour cet article" },
+  { code: "MONTANT_INVALIDE", status: 400, message: "Montant invalide" },
+  { code: "MONTANT_DEPASSE_RESTE", status: 400, message: "Le versement dépasse le prix de l'article" },
+  {
+    code: "CLE_IDEMPOTENCE_REUTILISEE",
+    status: 409,
+    message: "Une opération précédente a déjà été enregistrée. Vérifiez la fiche du client.",
+  },
+  { code: "CLE_IDEMPOTENCE_INVALIDE", status: 400, message: "Clé invalide" },
+];
 
 export async function POST(req: NextRequest) {
   try {
     checkOrigin(req);
     const ctx = await requireAuth(req);
     requireRole(ctx, ["commercial", "admin", "super_admin"]);
-    const { client_id, product_id, first_payment } = validateInput(
-      schema,
-      await req.json(),
-    );
+    const { client_id, product_id, months, first_payment, idempotency_key } =
+      validateInput(schema, await req.json());
 
-    // Récupérer le produit et vérifier qu'il est actif
+    // Client : doit exister, être un client actif et (pour un agent) lui être assigné
+    const { data: client, error: clientError } = await supabaseAdmin
+      .from("profiles")
+      .select("role, is_suspended, assigned_commercial")
+      .eq("id", client_id)
+      .maybeSingle();
+
+    if (clientError) {
+      console.error("[NouvelleCotisation] client fetch:", clientError);
+      throw new ApiError(500, "Erreur de création", "INTERNAL");
+    }
+    if (!client || client.role !== "user") {
+      throw new ApiError(404, "Client introuvable", "NOT_FOUND");
+    }
+    if (
+      ctx.profile.role === "commercial" &&
+      client.assigned_commercial !== ctx.user.id
+    ) {
+      throw new ApiError(403, "Ce client ne vous est pas assigné", "FORBIDDEN");
+    }
+    if (client.is_suspended) {
+      throw new ApiError(403, "Ce client est suspendu", "FORBIDDEN");
+    }
+
+    // Produit : prix nécessaire pour la règle du minimum (le reste est vérifié par la RPC)
     const { data: product, error: productError } = await supabaseAdmin
       .from("products")
-      .select("price, max_tranches, is_active")
+      .select("price")
       .eq("id", product_id)
-      .single();
+      .maybeSingle();
 
-    if (productError || !product) {
+    if (productError) {
+      console.error("[NouvelleCotisation] product fetch:", productError);
+      throw new ApiError(500, "Erreur de création", "INTERNAL");
+    }
+    if (!product) {
       throw new ApiError(404, "Produit introuvable", "NOT_FOUND");
     }
 
-    if (!product.is_active) {
-      throw new ApiError(409, "Produit indisponible", "INVALID_INPUT");
-    }
-
-    if (first_payment > product.price) {
+    // Premier versement : 0 F, au moins MIN_VERSEMENT_CASH, ou le prix exact
+    if (
+      first_payment > 0 &&
+      first_payment < MIN_VERSEMENT_CASH &&
+      first_payment !== product.price
+    ) {
       throw new ApiError(
         400,
-        "Le versement dépasse le prix du produit",
+        `Le premier versement doit être d'au moins ${MIN_VERSEMENT_CASH.toLocaleString("fr-FR")} FCFA (ou 0 F)`,
         "INVALID_INPUT",
       );
     }
 
-    // Vérifier l'assignation commercial → client (skip pour admin/super_admin)
-    const role = ctx.profile.role;
-    const isAdmin = role === "admin" || role === "super_admin";
+    // Création atomique : cotisation + premier versement éventuel, idempotente par clé
+    const { data: rpcData, error: rpcError } = await supabaseAdmin.rpc(
+      "create_cotisation_with_payment",
+      {
+        p_user_id: client_id,
+        p_product_id: product_id,
+        p_months: months,
+        p_first_payment: first_payment,
+        p_created_by: ctx.user.id,
+        p_idempotency_key: idempotency_key,
+      },
+    );
 
-    if (!isAdmin) {
-      const { data: client } = await supabaseAdmin
-        .from("profiles")
-        .select("assigned_commercial, is_suspended")
-        .eq("id", client_id)
-        .single();
-
-      if (!client) {
-        throw new ApiError(404, "Client introuvable", "NOT_FOUND");
-      }
-
-      if (client.is_suspended) {
-        throw new ApiError(403, "Ce client est suspendu", "FORBIDDEN");
-      }
-
-      if (client.assigned_commercial !== ctx.user.id) {
+    if (rpcError) {
+      const known = RPC_ERRORS.find((e) => rpcError.message?.includes(e.code));
+      if (known) {
         throw new ApiError(
-          403,
-          "Ce client ne vous est pas assigné",
-          "FORBIDDEN",
+          known.status,
+          known.message,
+          known.status === 404 ? "NOT_FOUND" : "INVALID_INPUT",
         );
       }
-    } else {
-      // Pour admin/super_admin, on vérifie juste que le client existe et n'est pas suspendu
-      const { data: client } = await supabaseAdmin
-        .from("profiles")
-        .select("is_suspended")
-        .eq("id", client_id)
-        .single();
-
-      if (!client) {
-        throw new ApiError(404, "Client introuvable", "NOT_FOUND");
-      }
-
-      if (client.is_suspended) {
-        throw new ApiError(403, "Ce client est suspendu", "FORBIDDEN");
-      }
-    }
-
-    const now = new Date().toISOString();
-    const deadline = addMonths(now, product.max_tranches);
-    const isFull = first_payment >= product.price;
-
-    // 1. Créer la cotisation
-    const { data: cotisation, error: cotError } = await supabaseAdmin
-      .from("cotisations")
-      .insert({
-        user_id: client_id,
-        product_id,
-        total_price: product.price,
-        amount_paid: first_payment,
-        amount_remaining: Math.max(0, product.price - first_payment),
-        nb_tranches: 1,
-        tranche_amount: first_payment,
-        status: isFull ? "completed" : "active",
-        deadline,
-        created_by: ctx.user.id,
-      })
-      .select("id")
-      .single();
-
-    if (cotError || !cotisation) {
-      console.error("[NouvelleCotisation] cotisation insert:", cotError);
+      console.error("[NouvelleCotisation] create_cotisation_with_payment:", rpcError);
       throw new ApiError(500, "Erreur de création", "INTERNAL");
     }
 
-    // 2. Enregistrer le premier paiement (non bloquant si échec, on log)
-    const { error: paymentError } = await supabaseAdmin.from("payments").insert({
-      cotisation_id: cotisation.id,
-      user_id: client_id,
-      amount: first_payment,
-      status: "success",
-      payment_method: "cash",
-      transaction_ref: `CASH-${Date.now()}`,
-      paid_at: now,
-    });
+    const data = (
+      Array.isArray(rpcData) ? rpcData[0] : rpcData
+    ) as CreateCotisationResult | null;
 
-    if (paymentError) {
-      console.error("[NouvelleCotisation] payment insert:", paymentError);
-      // Non bloquant : la cotisation a été créée, on continue
+    if (!data?.cotisation_id) {
+      console.error("[NouvelleCotisation] create_cotisation_with_payment: résultat vide");
+      throw new ApiError(500, "Erreur de création", "INTERNAL");
     }
 
-    // 3. Notifier le client (non bloquant)
-    await supabaseAdmin.from("notifications").insert({
-      user_id: client_id,
-      title: "Nouvelle cotisation démarrée",
-      message: `Une cotisation a été créée pour vous par votre commercial. Premier versement : ${first_payment.toLocaleString("fr-FR")} FCFA.`,
-      type: "info",
-    });
+    const payment = data.payment ?? null;
 
-    return NextResponse.json({ ok: true, cotisation_id: cotisation.id });
+    // Notifier le client uniquement pour une nouvelle création (échec non bloquant)
+    if (data.idempotent === false) {
+      const notif = payment?.just_completed
+        ? {
+            user_id: client_id,
+            title: "Cotisation complète !",
+            message: `Félicitations ! Votre cotisation est entièrement payée. Code de retrait : ${payment.withdrawal_code}. Vous pouvez maintenant demander le retrait de votre article.`,
+            type: "success",
+          }
+        : first_payment > 0
+          ? {
+              user_id: client_id,
+              title: "Nouvelle cotisation démarrée",
+              message: `Premier versement : ${first_payment.toLocaleString("fr-FR")} FCFA.`,
+              type: "info",
+            }
+          : {
+              user_id: client_id,
+              title: "Nouvelle cotisation démarrée",
+              message: "Votre agent a créé une cotisation pour vous.",
+              type: "info",
+            };
+
+      const { error: notifError } = await supabaseAdmin
+        .from("notifications")
+        .insert(notif);
+
+      if (notifError) {
+        console.error("[NouvelleCotisation] notification insert:", notifError);
+      }
+    }
+
+    // Le code de retrait n'est JAMAIS renvoyé à l'agent (anti-fraude)
+    return NextResponse.json({
+      ok: true,
+      idempotent: data.idempotent,
+      cotisation_id: data.cotisation_id,
+      completed: (payment?.new_status ?? data.new_status) === "completed",
+      amount_paid: payment?.amount_paid ?? data.amount_paid ?? 0,
+    });
   } catch (e) {
     return handleApiError(e);
   }

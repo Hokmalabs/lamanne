@@ -1,15 +1,10 @@
 import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin as admin } from "@/lib/supabase-admin";
 import { Wallet, Clock, CalendarDays, TrendingUp } from "lucide-react";
 import { formatCFA } from "@/lib/utils";
 import EncaissementsContent from "./EncaissementsContent";
 
 export const dynamic = "force-dynamic";
-
-const admin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 type RecentPayment = {
   id: string;
@@ -221,7 +216,7 @@ export default async function EncaissementsPage() {
           className="bg-white rounded-2xl p-5"
           style={{ boxShadow: "var(--shadow-sm)" }}
         >
-          <TrendingUp className="h-5 w-5 mb-2 text-[#2D9B6F]" />
+          <TrendingUp className="h-5 w-5 mb-2 text-lamanne-success" />
           <p className="font-sora text-xl sm:text-2xl font-black text-gray-900 truncate">{formatCFA(totalMonth)}</p>
           <p className="text-gray-500 text-sm mt-0.5">Ce mois</p>
         </div>
@@ -239,7 +234,7 @@ export default async function EncaissementsPage() {
             <div className="md:hidden divide-y divide-gray-50">
               {recentPayments.map((p) => (
                 <div key={p.id} className="flex items-center gap-3 px-4 py-3">
-                  <div className="w-9 h-9 rounded-full bg-[#FEF3D7] flex items-center justify-center flex-shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-lamanne-primary/10 flex items-center justify-center flex-shrink-0">
                     <span className="text-lamanne-primary font-bold text-xs">
                       {p.client_name.charAt(0).toUpperCase()}
                     </span>
