@@ -38,7 +38,7 @@ export default async function ClientDetailPage({
   // Active cotisations
   const { data: rawCotisations } = await admin
     .from("cotisations")
-    .select("id, amount_paid, status, created_at, deadline, products(id, name, price)")
+    .select("id, amount_paid, total_price, status, created_at, deadline, products(id, name)")
     .eq("user_id", clientId)
     .eq("status", "active")
     .order("created_at", { ascending: false });
@@ -50,8 +50,8 @@ export default async function ClientDetailPage({
       amount_paid: c.amount_paid as number,
       deadline: c.deadline as string | null,
       created_at: c.created_at as string,
+      total_price: c.total_price as number,
       product_name: (product as any)?.name ?? "—",
-      product_price: (product as any)?.price ?? 0,
     };
   });
 
@@ -113,8 +113,10 @@ export default async function ClientDetailPage({
         ) : (
           <div className="space-y-3">
             {cotisations.map((cot) => {
-              const pct = Math.min(100, Math.round((cot.amount_paid / cot.product_price) * 100));
-              const remaining = cot.product_price - cot.amount_paid;
+              const pct = cot.total_price > 0
+                ? Math.min(100, Math.round((cot.amount_paid / cot.total_price) * 100))
+                : 0;
+              const remaining = Math.max(0, cot.total_price - cot.amount_paid);
               const daysLeft = cot.deadline
                 ? Math.ceil((new Date(cot.deadline).getTime() - Date.now()) / 86400000)
                 : null;
@@ -147,7 +149,7 @@ export default async function ClientDetailPage({
                         <p className="text-gray-500">{formatCFA(cot.amount_paid)} payé</p>
                         <p className="text-gray-400">
                           Reste : <span className="font-semibold text-lamanne-primary">{formatCFA(remaining)}</span>
-                          {" / "}{formatCFA(cot.product_price)}
+                          {" / "}{formatCFA(cot.total_price)}
                         </p>
                       </div>
 
@@ -155,6 +157,7 @@ export default async function ClientDetailPage({
                         <VersementModal
                           cotisationId={cot.id}
                           productName={cot.product_name}
+                          clientName={client.full_name ?? undefined}
                           maxAmount={remaining}
                         />
                         <RemboursementModal
