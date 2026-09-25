@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const PROTECTED_ROUTES = ["/dashboard", "/catalogue", "/cotisations", "/historique", "/profil", "/admin", "/commercial"];
+const PROTECTED_ROUTES = ["/dashboard", "/catalogue", "/cotisations", "/historique", "/profil", "/admin", "/commercial", "/paiement"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -47,7 +47,13 @@ export async function middleware(request: NextRequest) {
   );
 
   if (isProtected && !user) {
-    return redirectTo(request, supabaseResponse, `/login?redirectTo=${pathname}`);
+    // Query string conservée (ex. /paiement/retour?ref=LMN-…) ; encodée pour qu'aucun "?"
+    // brut ne perturbe le découpage de redirectTo()
+    return redirectTo(
+      request,
+      supabaseResponse,
+      `/login?redirectTo=${encodeURIComponent(pathname + request.nextUrl.search)}`,
+    );
   }
 
   // Redirection si déjà connecté sur /login ou /register
@@ -85,6 +91,6 @@ function redirectTo(
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/webhooks|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
