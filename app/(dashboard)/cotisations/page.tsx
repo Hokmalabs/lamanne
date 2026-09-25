@@ -20,6 +20,8 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
+import OnlinePaymentButton from "@/components/OnlinePaymentButton";
+import { ONLINE_PAYMENT_UI_ENABLED } from "@/lib/online-payment";
 
 type Payment = { id: string; amount: number; paid_at: string | null };
 
@@ -246,11 +248,24 @@ function CotisationItem({
       {cotisation.status === "active" && (
         <div className="bg-lamanne-soft text-gray-700 rounded-xl p-4 flex items-start gap-3">
           <Info className="h-5 w-5 flex-shrink-0 mt-0.5" />
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold">Effectuer un versement</p>
-            <p className="text-xs mt-0.5">
-              Remettez votre versement à votre agent LAMANNE. Le paiement en ligne sera bientôt disponible.
-            </p>
+            {ONLINE_PAYMENT_UI_ENABLED ? (
+              <>
+                <OnlinePaymentButton
+                  cotisationId={cotisation.id}
+                  productName={cotisation.product.name}
+                  remaining={cotisation.total_price - cotisation.amount_paid}
+                />
+                <p className="text-xs mt-2">
+                  Ou remettez votre versement à votre agent LAMANNE (sans frais).
+                </p>
+              </>
+            ) : (
+              <p className="text-xs mt-0.5">
+                Remettez votre versement à votre agent LAMANNE. Le paiement en ligne sera bientôt disponible.
+              </p>
+            )}
           </div>
         </div>
       )}
