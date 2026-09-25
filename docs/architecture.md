@@ -1,3 +1,95 @@
+# architecture.md — ajouts du 24 septembre 2026
+
+À intégrer dans docs/architecture.md (remplacer les passages marqués « REMPLACE »).
+
+## RPC Postgres (REMPLACE la liste implicite)
+
+Toutes : SECURITY INVOKER sauf mention, `set search_path = public`,
+`revoke execute ... from public, anon, authenticated` + `grant execute ... to service_role`.
+Contrôle : `select p.oid::regprocedure, p.prosecdef, p.proacl from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public';`
+→ aucune ligne ne doit contenir `anon=X` ni `authenticated=X` (fonctions de trigger comprises).
+
+- `record_payment(p_cotisation_id, p_amount, p_recorded_by, p_idempotency_key) → json`
+  Versement cash. Verrou `for update` sur la cotisation AVANT le contrôle d'idempotence.
+  Clé déjà connue : même cotisation et même montant → `idempotent: true` ; sinon
+  `CLE_IDEMPOTENCE_REUTILISEE`. Refus : COTISATION_NON_ACTIVE, REMBOURSEMENT_EN_COURS
+  (requested ou approved), MONTANT_INVALIDE, MONTANT_DEPASSE_RESTE (sur total_price - amount_paid).
+  Soldé → status completed + code de retrait (gen_random_uuid, boucle anti-collision).
+  Renvoie { idempotent, new_status, withdrawal_code, amount_paid, amount_remaining, just_completed }.
+- `create_cotisation_with_payment(p_user_id, p_product_id, p_months, p_first_payment,
+  p_created_by, p_idempotency_key) → json`
+  `pg_advisory_xact_lock(hashtext(clé))`, idempotence par `cotisations.creation_key`.
+  Rejeu → { idempotent: true, cotisation_id, amount_paid, new_status }.
+  Premier versement (> 0) via record_payment avec la clé `<clé>:premier`.
+- `pin_attempt_begin`, `pin_attempt_success` (voir Authentification).
+
+Minimum métier des versements cash (lib/versement.ts, MIN_VERSEMENT_CASH = 1 000) : vérifié
+dans les routes, avec l'exception « montant = reste exact » (solde final).
+
+## Idempotence côté écrans
+
+Une clé (crypto.randomUUID, `newIdempotencyKey()`) = UNE opération logique. Elle est créée à
+l'ouverture du formulaire et régénérée UNIQUEMENT après un succès ou une réponse 409. Renvoyer
+la même saisie après une coupure réseau → le serveur répond « déjà enregistré », jamais de
+doublon. Ne jamais régénérer la clé sur changement de montant ou réouverture.
+
+## Écrans agent et RLS
+
+La RLS n'autorise que le propriétaire (`auth.uid() = user_id`). Un agent ne peut donc RIEN lire
+des données de ses clients depuis le navigateur : toute donnée client affichée à un agent est
+chargée côté serveur (supabaseAdmin, après vérification de l'assignation) ou via une route API.
+
+## Retraits (état au 24/09 — à corriger en P1c)
+
+La route PATCH /api/admin/retraits/[id] ne vérifie aucun code ; la page affiche le code.
+Cible P1c : code saisi par l'admin et comparé côté serveur, OU vérification d'identité tracée
+(withdrawn_by, withdrawal_method, withdrawal_proof). L'agent ne voit jamais le code de retrait.
+
+## Paiement en ligne — GeniusPay (conception validée, non codée)
+
+Retour terrain de l'intégration SumiAfrica (18/09/2026), qui PRIME sur la doc GeniusPay :
+- Base https://geniuspay.ci/api/v1/merchant (la doc écrit http:// : à ignorer).
+  En-têtes X-API-Key + X-API-Secret, côté serveur uniquement (la clé « publique » authentifie :
+  jamais dans le navigateur). Pas de SDK geniuspay-react.
+- POST /payments sans payment_method = checkout hébergé ; URL dans data.payment_url OU
+  data.checkout_url. Minimum 200 XOF. Notre merchant_ref dans metadata ; leur reference
+  (MTX-...) stockée dans payment_intents.provider_ref.
+- GET /payments/{reference} : re-vérification serveur à serveur obligatoire avant crédit.
+- Webhook : en-têtes x-webhook-signature, x-webhook-timestamp (secondes), x-webhook-event.
+  Signature = HMAC-SHA256(`${timestamp}.${rawBody}`, secret) en hex. Corps lu avec req.text().
+  Comparer les longueurs avant timingSafeEqual. Idempotence sur l'`id` de l'événement.
+  `environment` absent des vrais événements : ne rejeter que s'il est présent ET différent.
+  Montants en chaînes décimales ("200.00") : parser et arrondir.
+  Structure : { id, event, timestamp, data: { reference, amount, status, currency, net_amount,
+  fees: { total_fees, gateway_fees, platform_fees }, customer, metadata, payment_method } }.
+  Toujours répondre 200 (résultat réel tracé en base) : une réponse différenciée permet
+  d'énumérer les références. Retentatives jusqu'à 5 fois sur 6 h, réponse attendue < 10 s.
+  Le payload contient le téléphone du payeur : retirer `customer` avant stockage.
+- Frais : 1 % + 100 XOF + opérateur, prélevés sur le solde marchand (le montant du webhook =
+  montant demandé). Stocker fees et net_amount.
+- Pas d'API de reversement : tout remboursement est manuel.
+- En local, Node peut échouer à joindre geniuspay.ci (TLS) : tester sur Vercel.
+
+Modèle :
+- `payment_intents` : merchant_ref (unique, à nous), provider_ref (unique), cotisation_id,
+  user_id, initiated_by, amount_credit (≥ 200, ≤ reste), service_fee (100, stocké par intention),
+  amount_charged (= crédit + frais, envoyé à GeniusPay, comparé en égalité stricte),
+  status (pending | success | failed | expired), fees, net_amount, gateway, dates.
+- `webhook_events` : event_id (unique), merchant_ref, signature_valid, payload sans customer,
+  outcome (credited | duplicate | amount_mismatch | unknown_ref | invalid_signature).
+- `payments.intent_id` (unique) pour les versements en ligne.
+- RPC `confirm_online_payment` : update conditionnel `status = 'pending'` → 'success', puis
+  insert payments (online) + incrément amount_paid dans la même transaction ; trop-perçu
+  crédité et signalé (amount_remaining ramené à 0) ; code de retrait si soldé.
+- Page de retour : ne crédite jamais ; interroge NOTRE base (polling borné : 3 s, 60 s max).
+- Réconciliation : cron (Vercel Pro) sur les intentions pending > 15 min, expiration > 24 h.
+
+## Build local (Windows)
+
+`export NODE_OPTIONS=--max-old-space-size=4096`, `rm -rf .next` avant tsc (les types générés
+d'une autre branche faussent la vérification), `npx next build --no-lint` (le lint est déjà fait
+par la chaîne), navigateur fermé pendant le build.
+
 # LAMANNE — Architecture technique
 
 *Mise à jour : 23 septembre 2026*
