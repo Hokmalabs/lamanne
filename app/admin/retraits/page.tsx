@@ -11,6 +11,20 @@ type Tab = "pending" | "done";
 
 type Profile = { id: string; full_name: string; phone: string };
 
+// Jamais le code de retrait : l'admin ne le voit plus, il le saisit
+const COTISATION_COLUMNS =
+  "id, user_id, total_price, withdrawn_at, withdrawn_by, withdrawal_method, withdrawal_proof, products(name)";
+
+function withdrawalMethodLabel(method: string | null, proof: string | null): string | null {
+  if (method === "code") return "Code vérifié";
+  if (method === "identite") {
+    if (proof === "carnet") return "Identité (carnet)";
+    if (proof === "piece_identite") return "Identité (pièce d'identité)";
+    return "Identité";
+  }
+  return null;
+}
+
 // PostgREST renvoie un objet ou un tableau selon la relation — même normalisation
 // que app/api/admin/remboursements/[id]/route.ts
 function pickOne<T>(relation: T | T[] | null | undefined): T | null {
@@ -31,13 +45,13 @@ export default async function AdminRetraitsPage({
   const [{ data: rawPending }, { data: rawDone }] = await Promise.all([
     supabaseAdmin
       .from("cotisations")
-      .select("*, products(name)")
+      .select(COTISATION_COLUMNS)
       .eq("status", "completed")
       .is("withdrawn_at", null)
       .order("created_at", { ascending: true }),
     supabaseAdmin
       .from("cotisations")
-      .select("*, products(name)")
+      .select(COTISATION_COLUMNS)
       .eq("status", "completed")
       .not("withdrawn_at", "is", null)
       .order("withdrawn_at", { ascending: false })
@@ -45,9 +59,15 @@ export default async function AdminRetraitsPage({
   ]);
 
   // cotisations.user_id référence auth.users (pas profiles) : aucun embed PostgREST
-  // possible vers profiles. Une seule requête groupée remplace le N+1.
+  // possible vers profiles. Une seule requête groupée remplace le N+1
+  // (clients + admins ayant validé un retrait).
   const userIds = Array.from(
-    new Set([...(rawPending ?? []), ...(rawDone ?? [])].map((c) => c.user_id as string)),
+    new Set([
+      ...[...(rawPending ?? []), ...(rawDone ?? [])].map((c) => c.user_id as string),
+      ...(rawDone ?? [])
+        .map((c) => c.withdrawn_by as string | null)
+        .filter((v): v is string => !!v),
+    ]),
   );
   const profilesById = new Map<string, Profile>();
 
@@ -140,27 +160,33 @@ export default async function AdminRetraitsPage({
                     {formatFCFA(row.total_price)}
                   </p>
                 </div>
-                <div className="flex-shrink-0 text-center sm:text-right">
-                  <p className="text-xs text-gray-400 mb-1">Code de retrait</p>
-                  <p className="font-sora text-2xl font-black text-lamanne-primary tracking-widest bg-lamanne-light px-4 py-2 rounded-xl">
-                    {row.withdrawal_code ?? "—"}
-                  </p>
-                </div>
               </div>
 
               <div className="mt-4">
                 {tab === "done" ? (
-                  <div className="flex items-center gap-2 text-sm text-lamanne-success">
-                    <CheckCircle className="h-4 w-4 flex-shrink-0" />
-                    <span className="truncate">
+                  <div className="flex items-start gap-2 text-sm text-lamanne-success">
+                    <CheckCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                    <span>
                       Validé le{" "}
                       {row.withdrawn_at
                         ? new Date(row.withdrawn_at).toLocaleDateString("fr-FR")
                         : "—"}
+                      {row.withdrawal_method && (
+                        <>
+                          {" "}par {(row.withdrawn_by && profilesById.get(row.withdrawn_by)?.full_name) ?? "—"}
+                          {" — "}
+                          {withdrawalMethodLabel(row.withdrawal_method, row.withdrawal_proof)}
+                        </>
+                      )}
                     </span>
                   </div>
                 ) : (
-                  <ValidateButton id={row.id} />
+                  <ValidateButton
+                    id={row.id}
+                    clientName={row.profile?.full_name ?? "—"}
+                    clientPhone={row.profile?.phone ?? null}
+                    productName={row.product?.name ?? "—"}
+                  />
                 )}
               </div>
             </div>
