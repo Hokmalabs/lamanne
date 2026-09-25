@@ -170,6 +170,8 @@ export function validateInput<T>(schema: z.ZodType<T>, data: unknown): T {
 /** Origines autorisées à appeler les routes de mutation (POST/PATCH/DELETE) */
 const ALLOWED_ORIGINS: string[] = [
   "https://lamanne.vercel.app",
+  "https://lamanne.ci",
+  "https://www.lamanne.ci",
   "http://localhost:3000",
 ]
 

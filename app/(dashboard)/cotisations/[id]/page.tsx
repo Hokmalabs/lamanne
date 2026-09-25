@@ -8,6 +8,8 @@ import { Cotisation, Product } from "@/lib/types";
 import { formatCFA, calculateProgress, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import ProgressRing from "@/components/ProgressRing";
+import OnlinePaymentButton from "@/components/OnlinePaymentButton";
+import { ONLINE_PAYMENT_UI_ENABLED } from "@/lib/online-payment";
 import {
   ChevronLeft,
   Info,
@@ -168,11 +170,24 @@ export default function CotisationDetailPage() {
       {cotisation.status === "active" && (
         <div className="bg-lamanne-soft text-gray-700 rounded-2xl p-4 flex items-start gap-3">
           <Info className="h-5 w-5 flex-shrink-0 mt-0.5" />
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold">Effectuer un versement</p>
-            <p className="text-sm mt-0.5">
-              Remettez votre versement à votre agent LAMANNE. Le paiement en ligne sera bientôt disponible.
-            </p>
+            {ONLINE_PAYMENT_UI_ENABLED ? (
+              <>
+                <OnlinePaymentButton
+                  cotisationId={cotisation.id}
+                  productName={cotisation.product.name}
+                  remaining={cotisation.total_price - cotisation.amount_paid}
+                />
+                <p className="text-sm mt-2">
+                  Ou remettez votre versement à votre agent LAMANNE (sans frais).
+                </p>
+              </>
+            ) : (
+              <p className="text-sm mt-0.5">
+                Remettez votre versement à votre agent LAMANNE. Le paiement en ligne sera bientôt disponible.
+              </p>
+            )}
           </div>
         </div>
       )}
