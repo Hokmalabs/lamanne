@@ -7,7 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCFA } from "@/lib/utils";
 import { apiPost, ApiClientError } from "@/lib/api-client";
-import { ONLINE_MIN_CREDIT, ONLINE_SERVICE_FEE, onlineCharge } from "@/lib/online-payment";
+import {
+  ONLINE_MIN_CREDIT,
+  onlineCharge,
+  canPayOnline,
+  isValidOnlineCredit,
+} from "@/lib/online-payment";
 
 type InitiateResponse = { ok: true; merchant_ref: string; payment_url: string };
 
@@ -29,7 +34,7 @@ export default function OnlinePaymentButton({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (remaining < ONLINE_MIN_CREDIT) {
+  if (!canPayOnline(remaining)) {
     return (
       <p className="text-sm mt-0.5">
         Reste de {formatCFA(remaining)} : à régler en espèces auprès de votre agent.
@@ -38,8 +43,7 @@ export default function OnlinePaymentButton({
   }
 
   const amountNum = typeof amount === "number" ? amount : 0;
-  const isValid =
-    Number.isInteger(amountNum) && amountNum >= ONLINE_MIN_CREDIT && amountNum <= remaining;
+  const isValid = isValidOnlineCredit(amountNum, remaining);
   const total = onlineCharge(amountNum);
 
   const handleOpen = () => {
@@ -109,7 +113,7 @@ export default function OnlinePaymentButton({
                 id={`online-amount-${cotisationId}`}
                 type="number"
                 inputMode="numeric"
-                min={ONLINE_MIN_CREDIT}
+                min={remaining < ONLINE_MIN_CREDIT ? remaining : ONLINE_MIN_CREDIT}
                 max={remaining}
                 step={1}
                 value={amount}
@@ -119,9 +123,15 @@ export default function OnlinePaymentButton({
                 disabled={loading}
                 style={{ fontSize: "16px" }}
               />
-              <p className={isValid ? "text-xs text-gray-400" : "text-xs text-lamanne-danger"}>
-                Entre {formatCFA(ONLINE_MIN_CREDIT)} et {formatCFA(remaining)}.
-              </p>
+              {remaining < ONLINE_MIN_CREDIT ? (
+                <p className={isValid ? "text-xs text-gray-400" : "text-xs text-lamanne-danger"}>
+                  Montant à régler : {formatCFA(remaining)} (solde final).
+                </p>
+              ) : (
+                <p className={isValid ? "text-xs text-gray-400" : "text-xs text-lamanne-danger"}>
+                  Entre {formatCFA(ONLINE_MIN_CREDIT)} et {formatCFA(remaining)}.
+                </p>
+              )}
             </div>
 
             {/* Récapitulatif toujours visible avant validation */}
@@ -129,10 +139,6 @@ export default function OnlinePaymentButton({
               <div className="flex justify-between gap-3">
                 <span className="text-gray-600">Montant crédité</span>
                 <span className="font-semibold">{formatCFA(amountNum)}</span>
-              </div>
-              <div className="flex justify-between gap-3">
-                <span className="text-gray-600">Frais de service</span>
-                <span className="font-semibold">{formatCFA(ONLINE_SERVICE_FEE)}</span>
               </div>
               <div className="flex justify-between items-baseline gap-3 border-t border-lamanne-accent/20 pt-2 mt-1">
                 <span className="font-bold text-gray-900">Total à payer</span>
@@ -144,7 +150,7 @@ export default function OnlinePaymentButton({
 
             <p className="text-xs text-gray-500">
               Wave, Orange Money, MTN ou carte : vous choisirez sur la page sécurisée GeniusPay.
-              Le paiement en espèces auprès de votre agent est sans frais.
+              Aucun frais de service LAMANNE n&apos;est ajouté à votre versement.
             </p>
 
             <Button

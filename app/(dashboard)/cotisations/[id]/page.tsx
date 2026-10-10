@@ -180,7 +180,7 @@ export default function CotisationDetailPage() {
                   remaining={cotisation.total_price - cotisation.amount_paid}
                 />
                 <p className="text-sm mt-2">
-                  Ou remettez votre versement à votre agent LAMANNE (sans frais).
+                  Ou remettez votre versement à votre agent LAMANNE.
                 </p>
               </>
             ) : (

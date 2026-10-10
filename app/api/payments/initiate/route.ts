@@ -9,7 +9,13 @@ import {
   handleApiError,
   ApiError,
 } from "@/lib/api-security";
-import { ONLINE_MIN_CREDIT, ONLINE_SERVICE_FEE, onlineCharge } from "@/lib/online-payment";
+import {
+  ONLINE_MIN_CREDIT,
+  ONLINE_SERVICE_FEE,
+  onlineCharge,
+  canPayOnline,
+  isValidOnlineCredit,
+} from "@/lib/online-payment";
 import { createPayment } from "@/lib/geniuspay";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +25,7 @@ const schema = z.object({
   amount: z
     .number()
     .int("Montant entier requis")
-    .min(ONLINE_MIN_CREDIT, `Le paiement en ligne minimum est de ${ONLINE_MIN_CREDIT} FCFA`),
+    .min(1, "Montant invalide"),
 });
 
 /** Nombre maximal d'intentions de paiement par client et par heure */
@@ -79,7 +85,7 @@ export async function POST(req: NextRequest) {
     }
 
     const reste = (cot.total_price as number) - (cot.amount_paid as number);
-    if (reste < ONLINE_MIN_CREDIT) {
+    if (!canPayOnline(reste)) {
       throw new ApiError(
         409,
         `Reste de ${reste} F : à régler en espèces auprès de votre agent`,
@@ -88,6 +94,13 @@ export async function POST(req: NextRequest) {
     }
     if (amount > reste) {
       throw new ApiError(400, "Le montant dépasse le reste à payer", "INVALID_INPUT");
+    }
+    if (!isValidOnlineCredit(amount, reste)) {
+      throw new ApiError(
+        400,
+        `Le paiement en ligne minimum est de ${ONLINE_MIN_CREDIT} FCFA, sauf pour solder le reste exact`,
+        "INVALID_INPUT",
+      );
     }
 
     // Intention créée AVANT la redirection
