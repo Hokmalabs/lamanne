@@ -30,7 +30,7 @@ export default function OnlinePaymentButton({
   remaining: number;
 }) {
   const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState<number | "">(remaining);
+  const [amount, setAmount] = useState<number | "">("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,7 +47,7 @@ export default function OnlinePaymentButton({
   const total = onlineCharge(amountNum);
 
   const handleOpen = () => {
-    setAmount(remaining);
+    setAmount("");
     setError(null);
     setOpen(true);
   };
@@ -116,6 +116,7 @@ export default function OnlinePaymentButton({
                 min={remaining < ONLINE_MIN_CREDIT ? remaining : ONLINE_MIN_CREDIT}
                 max={remaining}
                 step={1}
+                placeholder={String(remaining < ONLINE_MIN_CREDIT ? remaining : ONLINE_MIN_CREDIT)}
                 value={amount}
                 onChange={(e) =>
                   setAmount(e.target.value === "" ? "" : Math.trunc(Number(e.target.value)))
@@ -124,14 +125,22 @@ export default function OnlinePaymentButton({
                 style={{ fontSize: "16px" }}
               />
               {remaining < ONLINE_MIN_CREDIT ? (
-                <p className={isValid ? "text-xs text-gray-400" : "text-xs text-lamanne-danger"}>
+                <p className={(amount === "" || isValid) ? "text-xs text-gray-400" : "text-xs text-lamanne-danger"}>
                   Montant à régler : {formatCFA(remaining)} (solde final).
                 </p>
               ) : (
-                <p className={isValid ? "text-xs text-gray-400" : "text-xs text-lamanne-danger"}>
+                <p className={(amount === "" || isValid) ? "text-xs text-gray-400" : "text-xs text-lamanne-danger"}>
                   Entre {formatCFA(ONLINE_MIN_CREDIT)} et {formatCFA(remaining)}.
                 </p>
               )}
+              <button
+                type="button"
+                onClick={() => setAmount(remaining)}
+                disabled={loading}
+                className="text-sm font-semibold text-lamanne-primary hover:underline disabled:opacity-50"
+              >
+                Tout solder : {formatCFA(remaining)}
+              </button>
             </div>
 
             {/* Récapitulatif toujours visible avant validation */}
@@ -164,6 +173,8 @@ export default function OnlinePaymentButton({
                   <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   Redirection...
                 </span>
+              ) : amountNum === 0 ? (
+                "Saisissez un montant"
               ) : (
                 `Payer ${formatCFA(total)}`
               )}
