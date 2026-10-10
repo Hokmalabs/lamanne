@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { homeForRole } from "@/lib/role-home";
 import AdminSidebar from "./AdminSidebar";
 import AdminBottomNav from "./AdminBottomNav";
 import Logo from "@/components/Logo";
@@ -21,7 +22,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .single();
 
   if (!profile || !["admin", "super_admin"].includes(profile.role)) {
-    redirect("/dashboard");
+    redirect(homeForRole(profile?.role));
   }
 
   const isSuperAdmin = profile.role === "super_admin";

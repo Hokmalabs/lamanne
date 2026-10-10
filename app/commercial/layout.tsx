@@ -1,14 +1,10 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { homeForRole } from "@/lib/role-home";
 import { CommercialSidebar, CommercialBottomNav } from "./CommercialSidebar";
 import NotificationBell from "@/components/NotificationBell";
 import Logo from "@/components/Logo";
-
-const adminClient = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export default async function CommercialLayout({
   children,
@@ -20,14 +16,14 @@ export default async function CommercialLayout({
 
   if (!user) redirect("/login");
 
-  const { data: profile } = await adminClient
+  const { data: profile } = await supabaseAdmin
     .from("profiles")
     .select("role, full_name")
     .eq("id", user.id)
     .single();
 
   if (!profile || !["commercial", "admin", "super_admin"].includes(profile.role)) {
-    redirect("/dashboard");
+    redirect(homeForRole(profile?.role));
   }
 
   const userName = profile.full_name ?? "Commercial";

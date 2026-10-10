@@ -1,6 +1,9 @@
+import { redirect } from "next/navigation";
 import { Sidebar, BottomNav } from "@/components/navbar";
 import NotificationBell from "@/components/NotificationBell";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { homeForRole, isStaffRole } from "@/lib/role-home";
 import Logo from "@/components/Logo";
 
 export default async function DashboardLayout({
@@ -13,15 +16,20 @@ export default async function DashboardLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  let userName = "Utilisateur";
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("full_name")
-      .eq("id", user.id)
-      .single();
-    if (profile?.full_name) userName = profile.full_name;
-  }
+  if (!user) redirect("/login");
+
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("role, full_name")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  // Un compte de l'équipe est renvoyé vers son portail.
+  // Profil introuvable ou rôle inconnu : PAS de redirect (le middleware
+  // renvoie un connecté de /login vers /dashboard → boucle infinie).
+  if (isStaffRole(profile?.role)) redirect(homeForRole(profile?.role));
+
+  const userName = profile?.full_name ?? "Utilisateur";
 
   return (
     <div className="min-h-screen" style={{ background: "#F8F9FC" }}>
