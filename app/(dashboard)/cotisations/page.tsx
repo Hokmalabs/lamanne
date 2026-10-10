@@ -258,7 +258,7 @@ function CotisationItem({
                   remaining={cotisation.total_price - cotisation.amount_paid}
                 />
                 <p className="text-xs mt-2">
-                  Ou remettez votre versement à votre agent LAMANNE (sans frais).
+                  Ou remettez votre versement à votre agent LAMANNE.
                 </p>
               </>
             ) : (
